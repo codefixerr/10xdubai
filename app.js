@@ -15,6 +15,37 @@ let currentState = {
   cashierTimer: null
 };
 
+// --- 100% MOBILE ANTI-ZOOM GESTURE & PINCH PREVENTION ---
+// Prevent iOS Safari & Android pinch gesture zoom
+document.addEventListener('gesturestart', function (e) {
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('gesturechange', function (e) {
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('gestureend', function (e) {
+  e.preventDefault();
+}, { passive: false });
+
+// Prevent 2+ fingers multi-touch pinch zoom
+document.addEventListener('touchmove', function (e) {
+  if (e.touches && e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// Prevent rapid double-tap to zoom
+let lastTouchEndTime = 0;
+document.addEventListener('touchend', function (event) {
+  const now = Date.now();
+  if (now - lastTouchEndTime <= 300) {
+    if (!event.target || !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(event.target.tagName)) {
+      event.preventDefault();
+    }
+  }
+  lastTouchEndTime = now;
+}, { passive: false });
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', async () => {
   refreshCaptcha();
@@ -27,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof syncGamesUIWithStatus === 'function') syncGamesUIWithStatus();
   }, 3000);
 });
+
 
 async function updateRealtimeOnlineUsersDisplay() {
   const el = document.getElementById('realtime-online-users-val');
