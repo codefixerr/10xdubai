@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dubai10X - Ultimate Gaming Platform</title>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="desktop-wrapper">
+    <div class="mobile-frame">
+
+      <!-- ================= 1. LOGIN SCREEN ================= -->
+      <section id="screen-login" class="screen">
+        <header class="auth-header">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="icon-btn" title="Customer Support" onclick="openSupportModal()">
+              <i class="fa-headset fa-solid"></i>
+            </button>
+            <div class="lang-selector">
+              <span>🇬🇧</span>
+              <span>EN</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="brand-section">
+          <div class="brand-logo-container">
+            <div class="brand-cards-icon">🃏</div>
+            <h1 class="brand-title">Dubai</h1>
+            <span class="brand-badge">10X</span>
+          </div>
+        </div>
+
+        <form class="auth-form" onsubmit="handleLoginSubmit(event)">
+          <div class="input-group">
+            <div class="prefix-badge">+91</div>
+            <input type="tel" id="login-phone" class="form-input" placeholder="Enter your phone number" maxlength="10" required>
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="login-password" class="form-input" placeholder="Please enter the password" required>
+            <button type="button" class="eye-btn" onclick="togglePasswordVisibility('login-password', this)">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-label">
+              <div class="custom-checkbox">
+                <input type="checkbox" id="remember-me" checked>
+                <div class="checkmark"></div>
+              </div>
+              <span>Remember password</span>
+            </label>
+            <a href="#" class="forgot-link" onclick="openForgotModal(event)">Forgot Password</a>
+          </div>
+
+          <button type="submit" class="btn-primary-gold" onclick="handleLoginSubmit(event)">Login</button>
+          <button type="button" class="btn-secondary-outline" onclick="switchScreen('register')">Register Now</button>
+        </form>
+      </section>
+
+
+      <!-- ================= 2. REGISTER SCREEN ================= -->
+      <section id="screen-register" class="screen">
+        <header class="auth-header">
+          <button class="icon-btn" onclick="switchScreen('login')" title="Back to Login">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="icon-btn" title="Customer Support" onclick="openSupportModal()">
+              <i class="fa-headset fa-solid"></i>
+            </button>
+            <div class="lang-selector">
+              <span>🇬🇧</span>
+              <span>EN</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="brand-section">
+          <div class="brand-logo-container">
+            <div class="brand-cards-icon">🃏</div>
+            <h1 class="brand-title">Dubai</h1>
+            <span class="brand-badge">10X</span>
+          </div>
+        </div>
+
+        <form class="auth-form" onsubmit="handleRegisterSubmit(event)">
+          <div class="input-group">
+            <div class="prefix-badge">+91</div>
+            <input type="tel" id="reg-phone" class="form-input" placeholder="Enter your phone number" maxlength="10" required>
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="reg-email" class="form-input" placeholder="Enter your Email ID (for password recovery)" required>
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="reg-pass" class="form-input" placeholder="Password:8-15 letters and numbers" required>
+            <button type="button" class="eye-btn" onclick="togglePasswordVisibility('reg-pass', this)">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="reg-confirm-pass" class="form-input" placeholder="Enter the password again" required>
+            <button type="button" class="eye-btn" onclick="togglePasswordVisibility('reg-confirm-pass', this)">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-shield-halved input-icon"></i>
+            <input type="text" id="reg-invite" class="form-input" placeholder="Please enter invite code">
+          </div>
+
+          <div class="input-group">
+            <i class="fa-solid fa-key input-icon"></i>
+            <input type="text" id="reg-otp" class="form-input" placeholder="Please enter the verification code" required>
+            <button type="button" id="send-otp-btn" class="send-code-btn" onclick="triggerOtpCountdown()">Send</button>
+          </div>
+
+          <div class="input-group" style="justify-content: space-between;">
+            <i class="fa-solid fa-calculator input-icon"></i>
+            <input type="text" id="reg-captcha-input" class="form-input" placeholder="Enter Captcha" style="width: 50%;" required>
+            <div class="captcha-badge" onclick="refreshCaptcha()" title="Refresh Captcha">
+              <span id="captcha-display">+3 = 128</span>
+              <i class="fa-solid fa-rotate-right" style="font-size: 11px;"></i>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-gold">Register</button>
+          <button type="button" class="btn-secondary-outline" onclick="switchScreen('login')">Password Login</button>
+        </form>
+      </section>
+
+
+      <!-- ================= 3. HOME PAGE SCREEN ================= -->
+      <section id="screen-home" class="screen">
+        <header class="home-header">
+          <div class="brand-mini">
+            <div style="font-size: 20px;">🃏</div>
+            <div class="brand-mini-title">Dubai10X</div>
+          </div>
+
+          <!-- Unlogged Actions -->
+          <div id="unlogged-actions" class="header-actions">
+            <button class="btn-sm-gold" onclick="switchScreen('register')">Register</button>
+            <button class="btn-sm-outline" onclick="switchScreen('login')">Login</button>
+          </div>
+
+          <!-- Logged In User Pill -->
+          <div id="logged-user-pill" class="user-balance-pill">
+            <div class="user-avatar" style="width: 26px; height: 26px; overflow: hidden; border-radius: 50%; border: 1.5px solid #ffe066; display: flex; align-items: center; justify-content: center; background: #000;">
+              <img id="header-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div class="balance-amount">₹ <span id="user-balance-val">12,850.00</span></div>
+            <button class="btn-sm-gold" style="padding: 3px 10px; font-size: 10px;" onclick="openDepositScreen()">Deposit</button>
+          </div>
+        </header>
+
+        <!-- MAIN HOME TAB VIEW -->
+        <div id="tab-home" class="tab-view-container active">
+          <div class="home-body">
+            
+            <!-- Hero Carousel -->
+            <div class="carousel-section">
+              <div class="carousel-slides" id="carousel-slides">
+                <div class="carousel-slide">
+                  <img src="banner1.jpg" alt="Welcome to Dubai10X">
+                  <div class="slide-overlay">
+                    <div class="slide-title">WELCOME TO Dubai10X</div>
+                    <div class="slide-subtitle">Play Smarter, Win Bigger | Only On Dubai10X</div>
+                  </div>
+                </div>
+                <div class="carousel-slide">
+                  <img src="banner2.jpg" alt="Golden Empire Casino">
+                  <div class="slide-overlay">
+                    <div class="slide-title">200% FIRST DEPOSIT BONUS</div>
+                    <div class="slide-subtitle">Instant Cashout & 24/7 VIP Support</div>
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-dots">
+                <div class="dot active" onclick="setCarouselSlide(0)"></div>
+                <div class="dot" onclick="setCarouselSlide(1)"></div>
+              </div>
+            </div>
+
+            <!-- Ticker Marquee -->
+            <div class="marquee-ticker">
+              <i class="fa-solid fa-volume-high speaker-icon"></i>
+              <div class="marquee-content">
+                <span class="marquee-text">📢 Welcome to Dubai10X! Play Wingo 1Min, Aviator & Chicken Road 2. Daily Rewards and instant withdrawal active!</span>
+              </div>
+              <button class="ticker-btn" onclick="openNoticeModal()">Details</button>
+            </div>
+
+            <!-- 10X Card Game Showcase (Single Featured Game) -->
+            <div class="section-header">
+              <div class="section-title">
+                <i class="fa-solid fa-fire title-icon" style="color: #ff4757;"></i>
+                <span>Popular Games</span>
+              </div>
+              <span style="font-size: 10px; font-weight: 800; color: #ffe066; background: rgba(245, 166, 35, 0.15); padding: 2px 8px; border-radius: 10px; border: 1px solid rgba(245, 166, 35, 0.3);">🔥 HOT GAMES</span>
+            </div>
+
+            <!-- 2-COLUMN SIDE-BY-SIDE GAMES GRID -->
+            <div class="popular-games-showcase-grid">
+              
+              <!-- GAME CARD 1: 10 CARD 10X GAME (ACTIVE) -->
+              <div class="game-showcase-box" id="game-showcase-10x" onclick="launchGame('10X Card Game')">
+                <div class="game-thumb-container">
+                  <img src="thumb_10card.jpg" alt="10 Card 10X Game" class="game-thumb-img">
+                  <div class="card-hot-tag" id="tag-game-10x">🔥 HOT</div>
+                </div>
+                <div class="game-card-info-body">
+                  <div class="game-10x-title">10 Card 10X</div>
+                  <div class="game-10x-online">
+                    <span class="live-dot-pulse"></span>
+                    <span><strong id="realtime-online-users-val">5</strong> Online</span>
+                  </div>
+                  <button class="btn-play-10x-sm" id="btn-game-10x">🎮 PLAY NOW 🚀</button>
+                </div>
+              </div>
+
+              <!-- GAME CARD 2: FLIP COIN 2X GAME (ACTIVE) -->
+              <div class="game-showcase-box" id="game-showcase-coinflip" onclick="launchGame('Flip Coin')">
+                <div class="game-thumb-container">
+                  <img src="thumb_flipcoin.jpg" alt="Flip Coin 2X Game" class="game-thumb-img">
+                  <div class="card-hot-tag" id="tag-game-coinflip">🔥 HOT</div>
+                </div>
+                <div class="game-card-info-body">
+                  <div class="game-10x-title">Flip Coin 2X</div>
+                  <div class="game-10x-online">
+                    <span class="live-dot-pulse"></span>
+                    <span>Heads & Tails 1.96X</span>
+                  </div>
+                  <button class="btn-play-10x-sm" id="btn-game-coinflip">🎮 PLAY NOW 🚀</button>
+                </div>
+              </div>
+
+              <!-- GAME CARD 3: DRAGON VS TIGER 3 CARD POKER -->
+              <div class="game-showcase-box" id="game-showcase-dragontiger" onclick="launchGame('dragontiger')">
+                <div class="game-thumb-container">
+                  <img src="thumb_dragontiger.jpg" alt="Dragon vs Tiger 3 Card Poker" class="game-thumb-img">
+                  <div class="card-hot-tag" id="tag-game-dragontiger" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">🔥 HOT</div>
+                </div>
+                <div class="game-card-info-body">
+                  <div class="game-10x-title">Dragon vs Tiger</div>
+                  <div class="game-10x-online">
+                    <span style="color: #ffe066; font-weight: 700;">🐉 3 Card Poker 🐯</span>
+                  </div>
+                  <button class="btn-play-10x-sm" id="btn-game-dragontiger">PLAY NOW <i class="fa-solid fa-play" style="font-size: 10px; margin-left: 4px;"></i></button>
+                </div>
+              </div>
+
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB VIEW: WHEEL SPIN -->
+        <div id="tab-wheel" class="tab-view-container">
+          <div class="wheel-tab-view">
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--color-text-gold); text-align: center;">Fortune Lucky Wheel</h2>
+            <p style="font-size: 12px; color: var(--color-text-muted); text-align: center; margin-top: 4px;">Spin the wheel to win up to ₹5,000 Cash Bonus!</p>
+
+            <div class="wheel-container">
+              <div class="wheel-pointer"></div>
+              <div class="wheel-graphic" id="wheel-graphic">
+                <div class="wheel-label" style="transform: rotate(22.5deg) translateY(-85px);">₹5</div>
+                <div class="wheel-label" style="transform: rotate(67.5deg) translateY(-85px);">₹10</div>
+                <div class="wheel-label" style="transform: rotate(112.5deg) translateY(-85px);">₹25</div>
+                <div class="wheel-label" style="transform: rotate(157.5deg) translateY(-85px);">₹50</div>
+                <div class="wheel-label" style="transform: rotate(202.5deg) translateY(-85px);">₹100</div>
+                <div class="wheel-label" style="transform: rotate(247.5deg) translateY(-85px);">₹500</div>
+                <div class="wheel-label" style="transform: rotate(292.5deg) translateY(-85px);">₹2,500</div>
+                <div class="wheel-label" style="transform: rotate(337.5deg) translateY(-85px);">₹5,000</div>
+              </div>
+              <button class="wheel-center-btn" onclick="spinLuckyWheel()">SPIN<br>NOW</button>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; width: 100%; text-align: center; margin-top: 10px;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--color-text-gold);">Spins Remaining: <span id="spins-left-count">0</span></div>
+              <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 4px;">Get 1 Lucky Spin on First Deposit or Single Deposit of ₹15,000+</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB VIEW: PROMO -->
+        <div id="tab-promo" class="tab-view-container">
+          <div style="padding: 20px 16px;">
+            <h2 style="font-size: 20px; font-weight: 800; color: var(--color-text-gold); margin-bottom: 14px;">Special Promotions</h2>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="event-card" style="padding: 16px;">
+                <span class="event-tag" id="promo-tag-bonus">100% BONUS</span>
+                <div class="event-title" style="font-size: 16px;" id="promo-title-bonus">First Deposit Cashback 100%</div>
+                <p style="font-size: 12px; color: var(--color-text-muted);" id="promo-desc-bonus">Get extra cash bonus credited automatically on your first deposit!</p>
+                <button class="btn-primary-gold" style="height: 40px; font-size: 13px;" onclick="openDepositScreen()">Deposit Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB VIEW: EARN / REFERRAL AGENT CENTER -->
+        <div id="tab-earn" class="tab-view-container">
+          <div style="padding: 16px;">
+            
+            <!-- AGENT REFERRAL BANNER CARD -->
+            <div style="background: linear-gradient(135deg, #1e1035 0%, #0d061c 100%); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin-bottom: 16px;">
+              <div style="font-size: 36px; margin-bottom: 4px;">👑</div>
+              <h2 style="font-size: 20px; font-weight: 900; color: var(--color-text-gold); margin: 0;">3-Tier Agent Referral Center</h2>
+              <p style="font-size: 12px; color: #34d399; font-weight: 700; margin-top: 4px;">Earn Lifetime Real-Time Bet Commission Across 3 Levels!</p>
+              
+              <!-- Unclaimed Commission & Claim Button -->
+              <div style="background: rgba(245, 166, 35, 0.12); border: 1.5px solid rgba(245, 166, 35, 0.4); border-radius: 14px; padding: 14px; margin-top: 14px;">
+                <div style="font-size: 11px; color: #f5a623; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">💰 Unclaimed Commission (અનક્લેઇમ કમિશન)</div>
+                <div style="font-size: 28px; font-weight: 900; color: #ffe066; margin: 4px 0;" id="earn-unclaimed-commission-amount">₹0.00</div>
+                <button id="btn-claim-referral-commission" onclick="claimReferralCommissionToWallet()" class="btn-primary-gold" style="height: 42px; width: 100%; font-size: 13px; font-weight: 800; border-radius: 10px; margin: 6px 0 0 0; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.2s ease;">
+                  ➕ Add to Main Wallet
+                </button>
+                <div id="earn-min-claim-note" style="font-size: 11px; color: #cbd5e1; margin-top: 6px; font-weight: 600;">
+                  (💡 Min ₹1,000 required to transfer to Main Wallet)
+                </div>
+              </div>
+
+              <!-- Total Lifetime Earnings Badge -->
+              <div style="background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(52, 211, 153, 0.3); border-radius: 12px; padding: 8px 12px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">Total Lifetime Commission Earned</span>
+                <span style="font-size: 14px; font-weight: 900; color: #34d399;" id="earn-total-commission-amount">₹0.00</span>
+              </div>
+            </div>
+
+            <!-- 3-LEVEL TEAM STATS CARDS GRID -->
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+              
+              <!-- Level 1 Stat Card -->
+              <div onclick="openReferralMemberDetailsModal(1)" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(52, 211, 153, 0.45); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" onmouseover="this.style.transform='scale(1.01)'; this.style.borderColor='#34d399';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(52, 211, 153, 0.45)';">
+                <div>
+                  <div style="font-size: 12px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 4px;">
+                    🥇 Level 1 (Direct Friends) <span onclick="event.stopPropagation(); openReferralMemberDetailsModal(1);" style="font-size: 9px; background: rgba(52, 211, 153, 0.2); color: #34d399; padding: 1px 6px; border-radius: 10px; font-weight: 700; cursor: pointer;">View List ➔</span>
+                  </div>
+                  <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Earns <span id="earn-level1-pct-display" style="color: #34d399; font-weight: 700;">1.5%</span> on every bet placed</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 15px; font-weight: 900; color: #ffffff;" id="earn-level1-count">0 Members</div>
+                  <div style="font-size: 12px; font-weight: 800; color: #34d399;" id="earn-level1-income">+₹0.00</div>
+                </div>
+              </div>
+
+              <!-- Level 2 Stat Card -->
+              <div onclick="openReferralMemberDetailsModal(2)" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(251, 191, 36, 0.45); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" onmouseover="this.style.transform='scale(1.01)'; this.style.borderColor='#fbbf24';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(251, 191, 36, 0.45)';">
+                <div>
+                  <div style="font-size: 12px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 4px;">
+                    🥈 Level 2 (2nd Gen Friends) <span onclick="event.stopPropagation(); openReferralMemberDetailsModal(2);" style="font-size: 9px; background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 1px 6px; border-radius: 10px; font-weight: 700; cursor: pointer;">View List ➔</span>
+                  </div>
+                  <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Earns <span id="earn-level2-pct-display" style="color: #fbbf24; font-weight: 700;">0.5%</span> on every bet placed</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 15px; font-weight: 900; color: #ffffff;" id="earn-level2-count">0 Members</div>
+                  <div style="font-size: 12px; font-weight: 800; color: #fbbf24;" id="earn-level2-income">+₹0.00</div>
+                </div>
+              </div>
+
+              <!-- Level 3 Stat Card -->
+              <div onclick="openReferralMemberDetailsModal(3)" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(96, 165, 250, 0.45); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" onmouseover="this.style.transform='scale(1.01)'; this.style.borderColor='#60a5fa';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(96, 165, 250, 0.45)';">
+                <div>
+                  <div style="font-size: 12px; font-weight: 800; color: #60a5fa; display: flex; align-items: center; gap: 4px;">
+                    🥉 Level 3 (3rd Gen Friends) <span onclick="event.stopPropagation(); openReferralMemberDetailsModal(3);" style="font-size: 9px; background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 1px 6px; border-radius: 10px; font-weight: 700; cursor: pointer;">View List ➔</span>
+                  </div>
+                  <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Earns <span id="earn-level3-pct-display" style="color: #60a5fa; font-weight: 700;">0.2%</span> on every bet placed</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 15px; font-weight: 900; color: #ffffff;" id="earn-level3-count">0 Members</div>
+                  <div style="font-size: 12px; font-weight: 800; color: #60a5fa;" id="earn-level3-income">+₹0.00</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- REFERRAL LINK & SHARE CARD -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; text-align: center;">
+              <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Your Invitation Code</div>
+              <div style="font-size: 24px; font-weight: 900; color: var(--color-text-gold); letter-spacing: 2px; margin: 4px 0;" id="earn-invite-code-display">89421</div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+                <button class="btn-primary-gold" style="height: 40px; font-size: 12px; margin: 0;" onclick="copyRefLink()">
+                  <i class="fa-regular fa-copy"></i> Copy Link
+                </button>
+                <button style="height: 40px; font-size: 12px; margin: 0; background: #25d366; color: white; border: none; border-radius: var(--radius-md); font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="shareRefWhatsApp()">
+                  <i class="fa-brands fa-whatsapp"></i> Share WhatsApp
+                </button>
+              </div>
+            </div>
+
+            <!-- COMMISSION CLAIM HISTORY CARD -->
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 16px; margin-top: 14px;">
+              <h3 style="font-size: 14px; font-weight: 800; color: var(--color-text-gold); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <span>📜 Commission Claim History</span>
+                <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">(ક્લેઇમ કરેલ સગવડ)</span>
+              </h3>
+              <div id="referral-claim-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="text-align: center; color: #64748b; font-size: 12px; padding: 12px;">No commission claims yet.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB VIEW: MINE / PROFILE -->
+        <div id="tab-mine" class="tab-view-container">
+          <div style="padding: 16px;">
+
+            <!-- PREMIUM USER PROFILE HEADER CARD -->
+            <div style="background: linear-gradient(135deg, rgba(35, 18, 70, 0.95) 0%, rgba(20, 10, 45, 0.98) 100%); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 18px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(245,166,35,0.15); margin-bottom: 16px; position: relative; overflow: hidden;">
+              
+              <!-- Subtle Background Glow Element -->
+              <div style="position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgba(245,166,35,0.2) 0%, transparent 70%); pointer-events: none;"></div>
+
+              <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                <!-- Avatar with Glowing Border -->
+                <div style="position: relative;">
+                  <div style="width: 60px; height: 60px; border-radius: 50%; border: 2.5px solid #ffe066; box-shadow: 0 0 15px rgba(245,166,35,0.5); overflow: hidden; background: #1e1035;">
+                    <img id="profile-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="User Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                  </div>
+                  <span style="position: absolute; bottom: 0px; right: 0px; background: #10b981; border: 2px solid #0d061c; width: 14px; height: 14px; border-radius: 50%;" title="Online"></span>
+                </div>
+
+                <!-- User Info -->
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="font-size: 17px; font-weight: 900; color: #ffffff; letter-spacing: 0.3px;" id="profile-user-id">User_6868</div>
+                    <span style="background: linear-gradient(135deg, #f5a623, #d47a00); color: #000; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                      👑 <span id="profile-vip-badge">VIP 1</span>
+                    </span>
+                  </div>
+
+                  <!-- Mobile Number Display -->
+                  <div style="font-size: 12px; color: #cbd5e1; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-mobile-screen-button" style="color: #60a5fa; font-size: 12px;"></i>
+                    <span id="profile-phone-display">+91 ----------</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Invitation Code Card inside Profile Header -->
+              <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(245, 166, 35, 0.4); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <div>
+                  <div style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Invitation Code</div>
+                  <div style="font-size: 16px; font-weight: 900; color: var(--color-text-gold); letter-spacing: 1.5px; margin-top: 1px;" id="profile-invite-code">89421</div>
+                </div>
+                <button type="button" onclick="copyProfileInviteCode()" style="background: linear-gradient(135deg, rgba(245,166,35,0.2), rgba(245,166,35,0.05)); border: 1px solid var(--border-gold); color: var(--color-text-gold); font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                  <i class="fa-regular fa-copy"></i> Copy Code
+                </button>
+              </div>
+
+              <!-- Stats Row: Wallet Balance & Spins -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 8px 10px; border-radius: 8px; text-align: center;">
+                  <div style="font-size: 10px; color: #94a3b8; font-weight: 700;">Wallet Balance</div>
+                  <div style="font-size: 15px; font-weight: 900; color: #34d399; margin-top: 2px;">₹<span id="profile-balance-val">0.00</span></div>
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 8px 10px; border-radius: 8px; text-align: center;">
+                  <div style="font-size: 10px; color: #94a3b8; font-weight: 700;">Lucky Spins</div>
+                  <div style="font-size: 15px; font-weight: 900; color: #ffe066; margin-top: 2px;"><span id="profile-spins-val">0</span> Spins</div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="mine-action-grid">
+              <button class="mine-action-btn btn-deposit-compact" onclick="openDepositScreen()">
+                <i class="fa-solid fa-wallet"></i> Deposit
+              </button>
+              <button class="mine-action-btn btn-withdraw-compact" onclick="openWithdrawModal()">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Withdraw
+              </button>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+              <div style="padding: 14px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; cursor: pointer;" onclick="openSupportModal()">
+                <span><i class="fa-solid fa-headset" style="margin-right: 8px; color: var(--color-text-gold);"></i> 24/7 Customer Support</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--color-text-muted);"></i>
+              </div>
+              <div style="padding: 14px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; cursor: pointer;" onclick="openTransactionHistoryModal('deposit')">
+                <span><i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px; color: var(--color-text-gold);"></i> Transaction History</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--color-text-muted);"></i>
+              </div>
+              <div style="padding: 14px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; cursor: pointer;" onclick="openBetRecordsModal()">
+                <span><i class="fa-solid fa-receipt" style="margin-right: 8px; color: var(--color-text-gold);"></i> Bet Records</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--color-text-muted);"></i>
+              </div>
+              <div style="padding: 14px; display: flex; justify-content: space-between; cursor: pointer;" onclick="handleLogoutUser()">
+                <span style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Log Out</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--color-text-muted);"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= 3.5 BC.GAME STYLE 3D FLIP COIN GAME SCREEN ================= -->
+      <section id="screen-flip-coin" class="screen" style="background: #0f172a;">
+        <!-- CoinFlip Header Bar -->
+        <header class="auth-header" style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          
+          <!-- Balance Badge Bar with + Deposit Button -->
+          <div style="display: flex; align-items: center; background: rgba(30, 41, 59, 0.9); border: 1.5px solid #10b981; padding: 4px 10px; border-radius: 20px; gap: 8px;">
+            <span style="background: #10b981; color: black; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;">₹</span>
+            <span style="font-size: 14px; font-weight: 800; color: #ffffff;">₹<span id="flip-coin-balance-val">0.00</span></span>
+            <button onclick="switchScreen('deposit')" style="background: #10b981; color: black; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" title="Deposit Cash">+</button>
+          </div>
+
+          <button class="icon-btn" onclick="openSupportModal()" title="Support">
+            <i class="fa-solid fa-headset"></i>
+          </button>
+        </header>
+
+        <div style="padding: 14px 14px 80px 14px; width: 100%; max-width: 435px; margin: 0 auto; box-sizing: border-box; overflow-x: hidden;">
+          
+          <!-- Top Multiplier Pill Badge -->
+          <div style="display: flex; justify-content: flex-start; margin-bottom: 12px;">
+            <div class="flip-multiplier-pill">1.96x</div>
+          </div>
+
+          <!-- Center 3D Flip Arena Card -->
+          <div class="flip-arena-card">
+            <!-- Left Box: Series Streak -->
+            <div class="flip-stat-box">
+              <div class="flip-stat-val" id="flip-series-val">0</div>
+              <div class="flip-stat-lbl">Series</div>
+            </div>
+
+            <!-- Center 3D Rotating Coin with 8mm Thickness Edge -->
+            <div class="flip-coin-stage">
+              <div id="coin-flipper-el" class="coin-3d-flipper heads-up">
+                <!-- Front Side: Heads (Double-Line H Emblem) -->
+                <div class="coin-face-3d coin-side-heads">
+                  <div class="coin-inner-ring">
+                    <svg class="coin-symbol-svg" viewBox="0 0 100 100" width="58" height="58">
+                      <filter id="shadowH">
+                        <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+                      </filter>
+                      <!-- Double-Line 'H' Emblem -->
+                      <g stroke="#fef08a" stroke-width="5" stroke-linecap="round" filter="url(#shadowH)">
+                        <line x1="28" y1="22" x2="28" y2="78" />
+                        <line x1="38" y1="22" x2="38" y2="78" />
+                        <line x1="62" y1="22" x2="62" y2="78" />
+                        <line x1="72" y1="22" x2="72" y2="78" />
+                        <line x1="28" y1="44" x2="72" y2="44" />
+                        <line x1="28" y1="56" x2="72" y2="56" />
+                      </g>
+                      <g stroke="#78350f" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="33" y1="24" x2="33" y2="76" />
+                        <line x1="67" y1="24" x2="67" y2="76" />
+                        <line x1="33" y1="50" x2="67" y2="50" />
+                      </g>
+                    </svg>
+                  </div>
+                </div>
+                <!-- 3D Edge Thickness Layers (8mm Metallic Edge Depth) -->
+                <div class="coin-edge-3d e1"></div>
+                <div class="coin-edge-3d e2"></div>
+                <div class="coin-edge-3d e3"></div>
+                <div class="coin-edge-3d e4"></div>
+                <div class="coin-edge-3d e5"></div>
+                <div class="coin-edge-3d e6"></div>
+                <div class="coin-edge-3d e7"></div>
+                <!-- Back Side: Tails (Double-Line T Emblem) -->
+                <div class="coin-face-3d coin-side-tails">
+                  <div class="coin-inner-ring">
+                    <svg class="coin-symbol-svg" viewBox="0 0 100 100" width="58" height="58">
+                      <filter id="shadowT">
+                        <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+                      </filter>
+                      <!-- Double-Line 'T' Emblem -->
+                      <g stroke="#ffffff" stroke-width="5" stroke-linecap="round" filter="url(#shadowT)">
+                        <line x1="22" y1="26" x2="78" y2="26" />
+                        <line x1="22" y1="36" x2="78" y2="36" />
+                        <line x1="44" y1="36" x2="44" y2="78" />
+                        <line x1="56" y1="36" x2="56" y2="78" />
+                      </g>
+                      <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="24" y1="31" x2="76" y2="31" />
+                        <line x1="50" y1="36" x2="50" y2="76" />
+                      </g>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Box: Multiply Indicator -->
+            <div class="flip-stat-box">
+              <div class="flip-stat-val" id="flip-multiply-val">x1.96</div>
+              <div class="flip-stat-lbl">Multiply</div>
+            </div>
+          </div>
+
+          <!-- Betting Amount Controls Card -->
+          <div class="flip-controls-card">
+            <!-- Multi-Flip Double-Up Streak Ladder Bar -->
+            <div id="flip-streak-ladder" style="margin-bottom: 12px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 4px; overflow-x: auto;">
+              <div class="streak-step active" id="streak-step-1" style="flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 10px; font-weight: 800; transition: all 0.3s;">1.96x</div>
+              <div class="streak-step" id="streak-step-2" style="flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8; font-size: 10px; font-weight: 800; transition: all 0.3s;">3.92x</div>
+              <div class="streak-step" id="streak-step-3" style="flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8; font-size: 10px; font-weight: 800; transition: all 0.3s;">7.84x</div>
+              <div class="streak-step" id="streak-step-4" style="flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8; font-size: 10px; font-weight: 800; transition: all 0.3s;">15.68x</div>
+              <div class="streak-step" id="streak-step-5" style="flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8; font-size: 10px; font-weight: 800; transition: all 0.3s;">31.36x</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; color: #94a3b8; font-weight: 700;">Amount (₹)</label>
+              <span id="flip-payout-badge" style="font-size: 11px; color: #34d399; font-weight: 800;">Payout: 1.96X</span>
+            </div>
+
+            <!-- Amount Input Field & Quick Math Buttons -->
+            <div id="flip-amount-container" style="display: flex; gap: 6px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
+              <div style="flex: 1; min-width: 0; display: flex; align-items: center; background: #0f172a; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0 8px;">
+                <span style="color: #34d399; font-weight: 900; font-size: 15px; margin-right: 4px;">₹</span>
+                <input type="number" id="flip-amount-input" class="form-input" style="font-size: 15px; font-weight: 800; color: white; border: none; background: transparent; padding: 8px 0; width: 100%; min-width: 0;" value="10" min="10" step="10">
+              </div>
+              <button type="button" class="flip-quick-btn" onclick="adjustCoinBetAmount('half')">1/2</button>
+              <button type="button" class="flip-quick-btn" onclick="adjustCoinBetAmount('double')">2x</button>
+              <button type="button" class="flip-quick-btn" onclick="adjustCoinBetAmount('max')">MAX</button>
+            </div>
+
+            <!-- Side Selection Buttons (Heads vs Tails) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+              <button type="button" id="btn-side-heads" class="flip-side-select-btn active" onclick="selectCoinSide('heads')">
+                <span class="side-icon-emoji" style="font-weight: 900; color: #ffe066; font-size: 15px;">🟡 H</span>
+                <span>Bet Heads</span>
+              </button>
+              <button type="button" id="btn-side-tails" class="flip-side-select-btn" onclick="selectCoinSide('tails')">
+                <span class="side-icon-emoji" style="font-weight: 900; color: #cbd5e1; font-size: 15px;">⚪ T</span>
+                <span>Bet Tails</span>
+              </button>
+            </div>
+
+            <!-- Action Buttons: Cash Out & Flip / Double Up -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Cash Out Button (Revealed during active Double-Up streak) -->
+              <button type="button" id="btn-flip-cashout" class="btn-primary-gold" onclick="cashOutCoinFlip()" style="display: none; width: 100%; height: 46px; font-size: 15px; font-weight: 900; background: linear-gradient(135deg, #f59e0b, #d97706); color: black; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);">
+                💰 CASH OUT ₹<span id="flip-cashout-val">0.00</span>
+              </button>
+
+              <!-- Main Green Action Button -->
+              <button type="button" id="btn-flip-action" class="btn-flip-green-main" onclick="playFlipCoinGame()">
+                FLIP COIN <i class="fa-solid fa-coins" style="color: #ffe066; margin-left: 6px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Recent Flip History Ticker -->
+          <div style="margin-top: 14px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; overflow-x: hidden;">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">Recent Flips History</div>
+            <div id="flip-history-pills-list" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; width: 100%; box-sizing: border-box; max-width: 100%; flex-wrap: nowrap;">
+              <span style="font-size: 11px; color: #64748b; font-style: italic;">No flips yet. Place your first flip!</span>
+            </div>
+          </div>
+
+          <!-- Personal Flip Coin Bet History with 10-Item Pagination -->
+          <div style="margin-top: 14px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 12px; font-weight: 800; color: #ffe066;">📜 My Flip Coin Bet History</span>
+              <span id="flip-history-page-info" style="font-size: 11px; color: #94a3b8;">Page 1 of 1</span>
+            </div>
+
+            <div id="flip-bet-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="text-align: center; color: #64748b; font-size: 12px; padding: 10px;">Loading history...</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <button id="btn-flip-prev-page" class="btn-sm-outline" onclick="changeFlipBetHistoryPage(-1)" style="font-size: 11px; padding: 4px 12px;" disabled>◀ Prev</button>
+              <span id="flip-history-total-count" style="font-size: 11px; color: #64748b;">0 bets</span>
+              <button id="btn-flip-next-page" class="btn-sm-outline" onclick="changeFlipBetHistoryPage(1)" style="font-size: 11px; padding: 4px 12px;" disabled>Next ▶</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 3.6 DRAGON VS TIGER (3 CARD & 1 CARD POKER) GAME SCREEN ================= -->
+      <section id="screen-dragon-tiger" class="screen" style="background: #090d16;">
+        <!-- Dragon vs Tiger Header Bar -->
+        <header class="auth-header" style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          
+          <div style="display: flex; align-items: center; background: rgba(30, 41, 59, 0.9); border: 1.5px solid #10b981; padding: 4px 10px; border-radius: 20px; gap: 8px;">
+            <span style="background: #10b981; color: black; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;">₹</span>
+            <span style="font-size: 14px; font-weight: 800; color: #ffffff;">₹<span id="dt-balance-val">0.00</span></span>
+            <button onclick="switchScreen('deposit')" style="background: #10b981; color: black; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" title="Deposit Cash">+</button>
+          </div>
+
+          <button class="icon-btn" onclick="openSupportModal()" title="Support">
+            <i class="fa-solid fa-headset"></i>
+          </button>
+        </header>
+
+        <div style="padding: 14px 14px 80px 14px; width: 100%; max-width: 435px; margin: 0 auto; box-sizing: border-box; overflow-x: hidden;">
+          
+          <!-- Round Status & Timer Banner -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: 800; color: #64748b; background: rgba(30,41,59,0.7); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+              ROUND #<span id="dt-round-id">101</span>
+            </div>
+            <div id="dt-timer-pill" class="dt-timer-badge">
+              ⏱️ BETTING: <span id="dt-timer-sec">15</span>s
+            </div>
+          </div>
+
+          <!-- Main Battle Arena -->
+          <div class="dt-arena-card">
+            
+            <!-- DRAGON Spot -->
+            <div id="dt-spot-dragon" class="dt-spot-box dragon-spot" onclick="selectDragonTigerSide('dragon')">
+              <div class="dt-spot-header">
+                <span class="dt-spot-title">🐉 DRAGON</span>
+                <span class="dt-mult-tag">2.0X</span>
+              </div>
+              
+              <div class="dt-cards-container" id="dt-cards-dragon">
+                <div class="dt-card-placeholder">
+                  <span class="dt-card-back">🂠🂠🂠</span>
+                </div>
+              </div>
+
+              <div class="dt-spot-bets-total">
+                Total Bets: ₹<span id="dt-total-dragon-bets">0</span>
+              </div>
+            </div>
+
+            <!-- VS / TIE Spot -->
+            <div id="dt-spot-tie" class="dt-spot-box tie-spot" onclick="selectDragonTigerSide('tie')">
+              <div class="dt-spot-header">
+                <span class="dt-spot-title" style="color: #4ade80;">🤝 TIE</span>
+                <span class="dt-mult-tag" style="background: rgba(74, 222, 128, 0.2); color: #4ade80;">9.0X</span>
+              </div>
+              <div class="dt-spot-bets-total">
+                ₹<span id="dt-total-tie-bets">0</span>
+              </div>
+            </div>
+
+            <!-- TIGER Spot -->
+            <div id="dt-spot-tiger" class="dt-spot-box tiger-spot" onclick="selectDragonTigerSide('tiger')">
+              <div class="dt-spot-header">
+                <span class="dt-spot-title" style="color: #fbbf24;">🐯 TIGER</span>
+                <span class="dt-mult-tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24;">2.0X</span>
+              </div>
+
+              <div class="dt-cards-container" id="dt-cards-tiger">
+                <div class="dt-card-placeholder">
+                  <span class="dt-card-back">🂠🂠🂠</span>
+                </div>
+              </div>
+
+              <div class="dt-spot-bets-total">
+                Total Bets: ₹<span id="dt-total-tiger-bets">0</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Interactive Chips Selector -->
+          <div class="dt-chips-row">
+            <div class="dt-chip-item active" onclick="selectDTChip(10)">₹10</div>
+            <div class="dt-chip-item" onclick="selectDTChip(50)">₹50</div>
+            <div class="dt-chip-item" onclick="selectDTChip(100)">₹100</div>
+            <div class="dt-chip-item" onclick="selectDTChip(500)">₹500</div>
+            <div class="dt-chip-item" onclick="selectDTChip(1000)">1K</div>
+            <div class="dt-chip-item" onclick="selectDTChip(5000)">5K</div>
+          </div>
+
+          <!-- Side Selection & Action Panel -->
+          <div class="dt-controls-card">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+              <button type="button" id="dt-btn-side-dragon" class="dt-side-btn dragon-btn active" onclick="selectDragonTigerSide('dragon')">
+                <span>🐉 DRAGON</span>
+                <span class="dt-side-sub">2.0X</span>
+              </button>
+              <button type="button" id="dt-btn-side-tie" class="dt-side-btn tie-btn" onclick="selectDragonTigerSide('tie')">
+                <span>🤝 TIE</span>
+                <span class="dt-side-sub">9.0X</span>
+              </button>
+              <button type="button" id="dt-btn-side-tiger" class="dt-side-btn tiger-btn" onclick="selectDragonTigerSide('tiger')">
+                <span>🐯 TIGER</span>
+                <span class="dt-side-sub">2.0X</span>
+              </button>
+            </div>
+
+            <!-- Place Bet Button -->
+            <button type="button" id="dt-btn-place-bet" class="btn-dt-main-action" onclick="placeDragonTigerBet()">
+              PLACE BET (₹<span id="dt-selected-chip-val">10</span>)
+            </button>
+          </div>
+
+          <!-- Live Roadmap History Ticker (Bead Plate) -->
+          <div style="margin-top: 14px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; overflow-x: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Roadmap History</span>
+              <span style="font-size: 10px; color: #64748b;">🔴 Dragon | 🔵 Tiger | 🟢 Tie</span>
+            </div>
+            <div id="dt-history-road-list" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
+              <!-- History badges injected via JS -->
+            </div>
+          </div>
+
+          <!-- Personal Dragon vs Tiger Bet History with 10-Item Pagination -->
+          <div style="margin-top: 14px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 12px; font-weight: 800; color: #ffe066;">📜 My Dragon vs Tiger Bet History</span>
+              <span id="dt-history-page-info" style="font-size: 11px; color: #94a3b8;">Page 1 of 1</span>
+            </div>
+
+            <div id="dt-bet-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="text-align: center; color: #64748b; font-size: 12px; padding: 10px;">Loading history...</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <button id="btn-dt-prev-page" class="btn-sm-outline" onclick="changeDTBetHistoryPage(-1)" style="font-size: 11px; padding: 4px 12px;" disabled>◀ Prev</button>
+              <span id="dt-history-total-count" style="font-size: 11px; color: #64748b;">0 bets</span>
+              <button id="btn-dt-next-page" class="btn-sm-outline" onclick="changeDTBetHistoryPage(1)" style="font-size: 11px; padding: 4px 12px;" disabled>Next ▶</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+
+      <!-- ================= 4. DEPOSIT METHOD SCREEN (SCREENSHOT 2) ================= -->
+      <section id="screen-deposit" class="screen">
+        <header class="auth-header" style="background: rgba(18, 9, 36, 0.95); border-bottom: 1px solid var(--border-subtle);">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <h2 style="font-size: 18px; font-weight: 800;">Deposit</h2>
+          <div style="width: 38px;"></div>
+        </header>
+
+        <div style="padding: 16px 16px 40px 16px;">
+          <!-- 7-Day Deposit Guarantee Banner -->
+          <div class="guarantee-banner">
+            <span>🚀 7-Day Deposit Guarantee</span>
+            <i class="fa-solid fa-circle-question" style="font-size: 14px;"></i>
+          </div>
+
+          <!-- Currency Selector -->
+          <div style="margin-top: 16px;">
+            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Currency</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(30, 20, 55, 0.8); border: 1px solid rgba(255,255,255,0.12); padding: 10px 14px; border-radius: var(--radius-md); margin-top: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                <span style="background: #f59e0b; color: black; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;">₹</span>
+                <span>INR</span>
+              </div>
+              <i class="fa-solid fa-chevron-down" style="color: var(--color-text-muted); font-size: 12px;"></i>
+            </div>
+          </div>
+
+          <!-- Deposit Method Grid -->
+          <div style="margin-top: 20px;">
+            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Deposit Method</label>
+            
+            <div class="deposit-methods-grid" id="deposit-methods-grid">
+              <div class="dep-method-card active" onclick="selectDepositMethodById('PM_UPI')">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <div class="method-icon-text" style="color: #34d399; font-weight: 800; font-size: 13px;">UPI</div>
+                <div class="method-subtitle" style="font-size: 10px; color: #94a3b8;">dubai10x.pay</div>
+              </div>
+              <div class="dep-method-card" onclick="selectDepositMethodById('PM_PHONEPE')">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <div class="method-icon-text" style="color: #a855f7; font-weight: 800; font-size: 13px;">PhonePe</div>
+                <div class="method-subtitle" style="font-size: 10px; color: #94a3b8;">dubai10x.pay</div>
+              </div>
+              <div class="dep-method-card" onclick="selectDepositMethodById('PM_PAYTM')">
+                <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+                <div class="method-icon-text" style="color: #38bdf8; font-weight: 800; font-size: 13px;">Paytm</div>
+                <div class="method-subtitle" style="font-size: 10px; color: #94a3b8;">dubai10x.pay</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deposit Amount Selection -->
+          <div style="margin-top: 24px;">
+            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Deposit Amount (200 - 20,000 INR)</label>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(20, 10, 40, 0.9); border: 1px solid rgba(16, 185, 129, 0.5); padding: 12px 16px; border-radius: var(--radius-md); margin-top: 6px;">
+              <input type="number" id="deposit-amount-input" class="form-input" style="font-size: 18px; font-weight: 800; color: white;" value="1000">
+            </div>
+
+            <!-- Amount Preset Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px;">
+              <div class="amount-preset-card active" onclick="selectAmountPreset(this, 1000)">
+                <span class="preset-val">₹1,000</span>
+              </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 2000)">
+                <span class="preset-val">₹2,000</span>
+              </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 20000)">
+                <span class="preset-val">₹20,000</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Green CTA Button -->
+          <button class="btn-deposit-green" onclick="proceedToCashier()">
+            Deposit Via UPI <i class="fa-solid fa-link"></i>
+          </button>
+
+          <!-- Deposit Guidelines Notice Card -->
+          <div class="deposit-notice-card">
+            <div class="notice-icon">!</div>
+            <div class="notice-list">
+              1. Your transfer amount has to MATCH the submission amount.<br>
+              2. Each Order ID can ONLY be used once to avoid duplicates.<br>
+              3. Please follow the deposit guideline to make deposit, otherwise your deposit will be missing.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 5. WITHDRAWAL SCREEN (BANK TRANSFER & UPI DIRECT) ================= -->
+      <section id="screen-withdraw" class="screen">
+        <header class="auth-header" style="background: rgba(18, 9, 36, 0.95); border-bottom: 1px solid var(--border-subtle);">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <h1 class="auth-title" style="font-size: 18px; margin: 0; color: var(--color-text-gold);">Withdraw Funds</h1>
+          <button class="icon-btn" onclick="openSupportModal()" title="Support">
+            <i class="fa-solid fa-headset"></i>
+          </button>
+        </header>
+
+        <div style="padding: 16px 16px 80px 16px;">
+          <!-- Wallet Balance Card -->
+          <div style="background: linear-gradient(135deg, rgba(33, 17, 66, 0.9) 0%, rgba(20, 10, 42, 0.95) 100%); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); text-align: center; position: relative;">
+            <div style="font-size: 12px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Withdrawable Balance</div>
+            <div style="font-size: 26px; font-weight: 900; color: var(--color-text-gold); margin: 6px 0;">₹<span id="withdraw-balance-val">0.00</span></div>
+            <div style="font-size: 11px; color: #34d399; font-weight: 700;">⚡ Instant Payouts 24/7 Active</div>
+          </div>
+
+          <!-- Withdrawal Amount Entry -->
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 6px; display: block;">ENTER WITHDRAWAL AMOUNT (₹)</label>
+            <div style="display: flex; align-items: center; background: rgba(20, 10, 40, 0.9); border: 1.5px solid var(--border-gold); padding: 8px 14px; border-radius: var(--radius-md);">
+              <span style="font-size: 22px; font-weight: 900; color: var(--color-text-gold); margin-right: 8px;">₹</span>
+              <input type="number" id="withdraw-amount-input" class="form-input" style="font-size: 22px; font-weight: 900; color: #ffe066; border: none; background: transparent; width: 100%;" placeholder="Enter amount e.g. 750" min="500" value="500">
+            </div>
+
+            <!-- Quick Amount Presets -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;">
+              <button type="button" class="amount-preset-card active" onclick="selectWithdrawPresetAmount(500, this)">₹500</button>
+              <button type="button" class="amount-preset-card" onclick="selectWithdrawPresetAmount(1000, this)">₹1,000</button>
+              <button type="button" class="amount-preset-card" onclick="selectWithdrawPresetAmount(5000, this)">₹5,000</button>
+              <button type="button" class="amount-preset-card" onclick="selectWithdrawPresetAmount('MAX', this)">ALL MAX</button>
+            </div>
+          </div>
+
+          <!-- Withdrawal Method Selection Tabs (Bank vs UPI) -->
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 8px; display: block;">SELECT PAYOUT METHOD</label>
+            <div class="tab-mode-selector">
+              <button type="button" id="tab-withdraw-bank" class="tab-mode-btn active" onclick="switchWithdrawMethod('bank')">
+                🏦 Bank Transfer
+              </button>
+              <button type="button" id="tab-withdraw-upi" class="tab-mode-btn" onclick="switchWithdrawMethod('upi')">
+                📲 UPI Direct ID
+              </button>
+            </div>
+          </div>
+
+          <!-- Bank Transfer Input Form & Saved Accounts Manager -->
+          <div id="withdraw-form-bank" style="display: block;">
+            <!-- Saved Bank Accounts Container -->
+            <div id="saved-bank-accounts-wrapper" style="margin-bottom: 14px;">
+              <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span>SAVED BANK ACCOUNTS</span>
+                <button type="button" onclick="toggleAddBankAccountForm()" style="background: none; border: none; color: #38bdf8; font-size: 11px; font-weight: 700; cursor: pointer;">
+                  <i class="fa-solid fa-plus"></i> Add New Bank
+                </button>
+              </div>
+              <div id="saved-bank-accounts-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Populated dynamically by app.js -->
+              </div>
+            </div>
+
+            <!-- New Bank Account Entry Form (Collapsible/Toggleable) -->
+            <div id="add-bank-account-form" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-gold); padding: 14px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: 12px; font-weight: 800; color: var(--color-text-gold); margin-bottom: 10px;">➕ Add New Bank Account</div>
+              <div class="input-group" style="margin-bottom: 10px;">
+                <i class="fa-solid fa-building-columns input-icon"></i>
+                <input type="text" id="w-bank-name" class="form-input" placeholder="Account Holder Name (As per Bank)">
+              </div>
+              <div class="input-group" style="margin-bottom: 10px;">
+                <i class="fa-solid fa-credit-card input-icon"></i>
+                <input type="text" id="w-bank-acc" class="form-input" placeholder="Bank Account Number">
+              </div>
+              <div class="input-group" style="margin-bottom: 10px;">
+                <i class="fa-solid fa-shield-halved input-icon"></i>
+                <input type="text" id="w-bank-acc-confirm" class="form-input" placeholder="Confirm Bank Account Number">
+              </div>
+              <div class="input-group" style="margin-bottom: 10px;">
+                <i class="fa-solid fa-code-branch input-icon"></i>
+                <input type="text" id="w-bank-ifsc" class="form-input" style="text-transform: uppercase;" placeholder="IFSC Code (e.g. HDFC0001234)">
+              </div>
+              <div class="input-group" style="margin-bottom: 12px;">
+                <i class="fa-solid fa-landmark input-icon"></i>
+                <input type="text" id="w-bank-bankname" class="form-input" placeholder="Bank Name (e.g. HDFC Bank)">
+              </div>
+              <button type="button" onclick="saveAndSelectNewBankAccount()" class="btn-primary-gold" style="height: 38px; font-size: 12px; font-weight: 800; width: 100%; margin: 0;">
+                Save & Use This Bank Account
+              </button>
+            </div>
+          </div>
+
+          <!-- UPI ID Input Form & Saved Accounts Manager -->
+          <div id="withdraw-form-upi" style="display: none;">
+            <!-- Saved UPI Accounts Container -->
+            <div id="saved-upi-accounts-wrapper" style="margin-bottom: 14px;">
+              <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span>SAVED UPI IDs</span>
+                <button type="button" onclick="toggleAddUpiAccountForm()" style="background: none; border: none; color: #38bdf8; font-size: 11px; font-weight: 700; cursor: pointer;">
+                  <i class="fa-solid fa-plus"></i> Add New UPI ID
+                </button>
+              </div>
+              <div id="saved-upi-accounts-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Populated dynamically by app.js -->
+              </div>
+            </div>
+
+            <!-- New UPI ID Entry Form (Collapsible/Toggleable) -->
+            <div id="add-upi-account-form" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-gold); padding: 14px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: 12px; font-weight: 800; color: var(--color-text-gold); margin-bottom: 10px;">➕ Add New UPI ID</div>
+              <div class="input-group" style="margin-bottom: 10px;">
+                <i class="fa-solid fa-at input-icon"></i>
+                <input type="text" id="w-upi-vpa" class="form-input" placeholder="UPI ID / VPA (e.g. user@upi)">
+              </div>
+              <div class="input-group" style="margin-bottom: 12px;">
+                <i class="fa-solid fa-user-check input-icon"></i>
+                <input type="text" id="w-upi-name" class="form-input" placeholder="Registered Payee Name">
+              </div>
+              <button type="button" onclick="saveAndSelectNewUpiAccount()" class="btn-primary-gold" style="height: 38px; font-size: 12px; font-weight: 800; width: 100%; margin: 0;">
+                Save & Use This UPI ID
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Withdrawal Button -->
+          <button type="button" class="btn-primary-gold" style="height: 48px; font-size: 14px; font-weight: 900; width: 100%; border-radius: var(--radius-md); box-shadow: 0 6px 20px rgba(245,166,35,0.4);" onclick="handleWithdrawSubmit()">
+            CONFIRM WITHDRAWAL REQUEST 🚀
+          </button>
+
+          <!-- My Withdrawal Records Section -->
+          <div style="margin-top: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div style="font-size: 13px; font-weight: 800; color: #f1f5f9;">
+                📜 My Withdrawal History
+              </div>
+              <button type="button" onclick="renderMyWithdrawalHistory()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+
+            <div class="bet-history-card">
+              <div id="withdraw-my-history-list" class="bet-history-list">
+                <div style="padding: 16px; text-align: center; color: var(--color-text-muted); font-size: 12px;">Loading withdrawal history...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= 5. CASHIER PAYMENT CHECKOUT SCREEN (SCREENSHOT 3) ================= -->
+      <section id="screen-cashier" class="screen" style="background: #f8fafc;">
+        <header class="cashier-header">
+          <button onclick="switchScreen('deposit')" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
+          <h2 style="font-size: 20px; font-weight: 800;">Payment</h2>
+          <div class="cashier-timer-badge" id="cashier-countdown">04:54</div>
+        </header>
+
+        <div style="overflow-y: auto; flex: 1;">
+          <div class="payable-amount-box">
+            <div style="font-size: 13px; color: #64748b; font-weight: 600;">Amount Payable</div>
+            <div class="payable-val" id="cashier-payable-val">₹1,000.00</div>
+            <div style="font-size: 13px; color: #475569; font-weight: 600; margin-top: 4px;">Use Mobile Scan code to pay</div>
+          </div>
+
+          <!-- Center QR Code Card -->
+          <div class="qr-checkout-card">
+            <img id="cashier-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3Ddubai10x.pay%40upi%26am%3D1000" alt="UPI QR Code" class="qr-code-img">
+            
+            <p class="qr-warning-text">
+              Please do not save the QR code for repeated payments, otherwise the payment may not be credited.
+            </p>
+
+            <button class="btn-blue-save" onclick="downloadQrCode()">↓ Save</button>
+          </div>
+
+          <!-- UPI ID Display with Copy -->
+          <div style="margin: 16px; background: white; border-radius: var(--radius-md); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div>
+              <div style="font-size: 11px; color: #64748b; font-weight: 600;">UPI ID</div>
+              <div id="cashier-upi-id-display" style="font-size: 14px; font-weight: 800; color: #0f172a;">amiriwin.pay@upi</div>
+            </div>
+            <button onclick="copyUpiId()" style="background: #e2e8f0; border: none; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; color: #0f172a; cursor: pointer;">Copy</button>
+          </div>
+
+          <!-- Payment App Launchers -->
+          <div class="payment-apps-list">
+            <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 2px;">Choose a payment method to pay</div>
+            
+            <div class="payment-app-btn" onclick="launchPaymentApp('paytm')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #00baf2; font-weight: 900;">Paytm</span>
+              </div>
+              <span style="font-size: 18px;">👆</span>
+            </div>
+
+            <div class="payment-app-btn" onclick="launchPaymentApp('phonepe')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #5f259f; font-weight: 900;">PhonePe</span>
+              </div>
+              <span style="font-size: 18px;">👆</span>
+            </div>
+
+            <div class="payment-app-btn" onclick="launchPaymentApp('gpay')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #ea4335; font-weight: 900;">Google Pay</span>
+              </div>
+              <span style="font-size: 18px;">👆</span>
+            </div>
+          </div>
+
+          <!-- UTR Submission Card -->
+          <div class="utr-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 800; font-size: 14px; color: #0f172a;">UTR & Payment Proof</span>
+              <a href="#" style="font-size: 12px; color: #007bff; font-weight: 600;" onclick="openUtrHelp(event)">where is UTR</a>
+            </div>
+
+            <input type="text" id="utr-input" class="utr-input-field" placeholder="Input 12-digit UTR here" maxlength="12">
+
+            <!-- Payment Proof Screenshot Upload -->
+            <div style="margin-top: 10px; margin-bottom: 12px; text-align: left;">
+              <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between;">
+                <span>📷 Upload Payment Screenshot</span>
+                <span style="font-size: 10px; color: #64748b; font-weight: 500;">(Optional/Proof)</span>
+              </div>
+              <input type="file" id="utr-proof-file" accept="image/*" onchange="handleUtrProofSelect(this)" style="display: none;">
+              <button type="button" onclick="document.getElementById('utr-proof-file').click()" style="width: 100%; height: 38px; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed #94a3b8; background: #f8fafc; color: #334155; border-radius: 8px; cursor: pointer; font-weight: 700;">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 14px; color: #0284c7;"></i>
+                <span id="utr-proof-btn-label">Choose Payment Screenshot Image</span>
+              </button>
+
+              <div id="utr-proof-preview-container" style="display: none; margin-top: 8px; text-align: center; position: relative; background: #f1f5f9; padding: 6px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <img id="utr-proof-preview-img" src="" alt="Payment Proof Preview" style="max-width: 100%; max-height: 140px; border-radius: 6px; object-fit: contain; display: block; margin: 0 auto;">
+                <button type="button" onclick="clearUtrProofFile()" style="position: absolute; top: 4px; right: 4px; background: rgba(225, 29, 72, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Remove Image">✕</button>
+              </div>
+            </div>
+
+            <button class="btn-submit-ref" onclick="submitUtrRef()">Submit Ref Number & Proof</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 6. 13 CARD 10X GAME SCREEN ================= -->
+      <section id="screen-10x-game" class="screen" style="background: var(--bg-app);">
+        <header class="auth-header" style="background: rgba(18, 9, 36, 0.98); border-bottom: 1px solid var(--border-gold); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+          <button class="icon-btn" onclick="switchScreen('home')" title="Back to Home">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          
+          <div style="font-size: 15px; font-weight: 900; color: var(--color-text-gold);">🃏 10X Card Game</div>
+
+          <!-- User Wallet Balance in Header -->
+          <div class="user-balance-pill" onclick="switchScreen('deposit')" style="cursor: pointer; padding: 5px 10px; font-size: 12px; font-weight: 900; background: linear-gradient(135deg, rgba(30, 15, 60, 0.9), rgba(20, 10, 40, 0.95)); border: 1px solid var(--border-gold); border-radius: var(--radius-pill); display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">
+            <i class="fa-solid fa-wallet" style="color: #f5a623;"></i>
+            <span style="color: #ffffff;">₹<span id="game-10x-balance-val">0.00</span></span>
+            <i class="fa-solid fa-circle-plus" style="color: #10b981; font-size: 12px;"></i>
+          </div>
+        </header>
+
+        <div style="padding: 16px 16px 80px 16px;">
+          
+          <!-- Round Info, Timer & Status Header in Body -->
+          <div class="game-round-info-bar">
+            <div>
+              <span style="font-size: 10px; color: var(--color-text-muted); font-weight: 700;">ROUND ISSUE</span>
+              <div id="game-10x-round-id" style="font-size: 13px; font-weight: 900; color: var(--color-text-gold);">#---</div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="game-10x-timer-label" style="font-size: 10px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 2px;">COUNTDOWN</span>
+              <div id="game-10x-timer" class="game-timer-badge" style="font-size: 13px; padding: 4px 10px; font-weight: 900;">02:00</div>
+            </div>
+
+            <div id="game-10x-status-tag" class="status-tag-active">🟢 Betting Open</div>
+          </div>
+
+          <!-- Result Reveal Banner (Shows when round settles) -->
+          <div id="game-10x-result-banner" class="game-result-banner" style="display: none; background: transparent; border: none; padding: 0; box-shadow: none;">
+            <div id="game-10x-winning-card-display"></div>
+          </div>
+
+          <!-- 13 Cards Grid (A to K) -->
+          <!-- DUAL TAB BETTING SELECTION SYSTEM -->
+          <div class="animal-tabs-container" style="margin-bottom: 12px;">
+            <!-- Tab Row 1: Bet Mode (10X Exact vs 2X Category) -->
+            <div class="tab-mode-selector">
+              <button type="button" id="tab-bet-type-10x" class="tab-mode-btn active" onclick="switchBetTypeMode('exact_10x')">
+                🎯 10X Exact Bet
+              </button>
+              <button type="button" id="tab-bet-type-2x" class="tab-mode-btn" onclick="switchBetTypeMode('category_2x')">
+                ⚡ 2X Category Bet
+              </button>
+            </div>
+
+            <!-- 2X Category Quick Selector (Visible in 2X Bet Mode) -->
+            <div id="category-2x-selector-box" style="display: none; gap: 8px; margin-top: 6px;">
+              <button type="button" id="btn-2x-wild" class="cat-2x-select-btn active" onclick="select2xCategory('wild')">
+                Bowler (2X)
+              </button>
+              <button type="button" id="btn-2x-pet" class="cat-2x-select-btn" onclick="select2xCategory('pet')">
+                Batsman (2X)
+              </button>
+            </div>
+          </div>
+
+          <div class="cards-13-grid" id="cards-13-container">
+            <div id="card-13-item-1" class="card-item-13 selected" onclick="selectCard10x(1)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge wild">bowler</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Kuldeep</div></div></div></div>
+            <div id="card-13-item-2" class="card-item-13" onclick="selectCard10x(2)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge wild">bowler</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">varun</div></div></div></div>
+            <div id="card-13-item-3" class="card-item-13" onclick="selectCard10x(3)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge wild">bowler</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Bumra</div></div></div></div>
+            <div id="card-13-item-4" class="card-item-13" onclick="selectCard10x(4)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge wild">bowler</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Arshdeep</div></div></div></div>
+            <div id="card-13-item-5" class="card-item-13" onclick="selectCard10x(5)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge wild">bowler</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Rana</div></div></div></div>
+            <div id="card-13-item-6" class="card-item-13" onclick="selectCard10x(6)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge pet">bastman</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Gill</div></div></div></div>
+            <div id="card-13-item-7" class="card-item-13" onclick="selectCard10x(7)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge pet">bastman</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Kohli</div></div></div></div>
+            <div id="card-13-item-8" class="card-item-13" onclick="selectCard10x(8)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge pet">bastman</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Rohit</div></div></div></div>
+            <div id="card-13-item-9" class="card-item-13" onclick="selectCard10x(9)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge pet">bastman</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Iyer</div></div></div></div>
+            <div id="card-13-item-10" class="card-item-13" onclick="selectCard10x(10)"><div class="card-face-front animal-photo-card"><div class="animal-cat-badge pet">bastman</div><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." data-img-src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gFYSUNDX1BST0ZJTEUAAQIBAAA..." class="animal-full-photo"><div class="animal-name-banner"><div class="animal-name-text">Surya</div></div></div></div>
+          </div>
+
+          <!-- Single Combined Chip Selector Row -->
+          <div style="margin-top: 16px;">
+            <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 8px; text-align: center;">SELECT CHIP OR ENTER CUSTOM AMOUNT (₹)</div>
+            
+            <div class="chip-selector-combined-row">
+              <!-- Left Side: Compact Manual Input Box (Default 10) -->
+              <div class="manual-chip-box-compact">
+                <button type="button" class="btn-step-chip-sm" onclick="multiplyBetAmount(0.5)" title="Half Bet">-</button>
+                <div class="compact-input-wrap">
+                  <span style="font-size: 13px; font-weight: 900; color: var(--color-text-gold);">₹</span>
+                  <input type="number" id="game-10x-manual-amount" class="manual-chip-input-sm" placeholder="10" min="10" max="50000" value="10" oninput="handleManualChipInput(this)">
+                </div>
+                <button type="button" class="btn-step-chip-sm" onclick="multiplyBetAmount(2)" title="Double Bet">+</button>
+              </div>
+
+              <!-- Right Side: 3 Preset Chips (100, 500, 1000) -->
+              <div class="chips-bar-compact">
+                <div class="chip-btn" onclick="selectChip(100)">₹100</div>
+                <div class="chip-btn" onclick="selectChip(500)">₹500</div>
+                <div class="chip-btn" onclick="selectChip(1000)">₹1000</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bet Action Footer -->
+          <div class="game-bet-action-box">
+            <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between;">
+              <span>Selected Bet:</span>
+              <div>
+                <span id="game-10x-selected-bet-val" style="color: var(--color-text-gold); font-weight: 900;">₹10</span> 
+                <span style="color: #64748b;">on</span> 
+                <span id="game-10x-selected-card-val" style="color: #38bdf8; font-weight: 900;">None</span>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button id="game-10x-confirm-btn" class="btn-bet-confirm-sm" onclick="placeBet10x()">CONFIRM BET (10X) 🚀</button>
+              <button class="btn-bet-clear-sm" onclick="clearCardSelection10x()">Clear</button>
+            </div>
+          </div>
+
+          <!-- MY BET HISTORY SECTION -->
+          <div class="bet-history-section" style="margin-top: 20px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div style="font-size: 13px; font-weight: 800; color: #f1f5f9; display: flex; align-items: center; gap: 6px;">
+                📜 My Bet History
+              </div>
+              <button onclick="render10xMyBetHistory()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+
+            <div class="bet-history-card">
+              <div id="game-10x-bet-history-list" class="bet-history-list">
+                <div style="padding: 16px; text-align: center; color: var(--color-text-muted); font-size: 12px;">
+                  Loading bet history...
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 7. TRANSACTION HISTORY FULL SCREEN ================= -->
+      <section id="screen-tx-history" class="screen" style="background: var(--bg-app);">
+        <header class="auth-header" style="background: rgba(18, 9, 36, 0.98); border-bottom: 1px solid var(--border-gold); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+          <button class="icon-btn" onclick="openMineScreenOrBack()" title="Back">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div style="font-size: 15px; font-weight: 900; color: var(--color-text-gold);">⏱️ Transaction History</div>
+          <div style="width: 32px;"></div>
+        </header>
+
+        <div style="padding: 16px; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <!-- Dual Tabs: Deposit vs Withdrawal -->
+          <div style="display: flex; gap: 8px; margin-bottom: 14px; background: rgba(15, 23, 42, 0.6); padding: 4px; border-radius: 10px; border: 1px solid var(--border-subtle); flex-shrink: 0;">
+            <button type="button" id="tab-tx-deposit" onclick="switchTxHistoryTab('deposit')" style="flex: 1; height: 38px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: 800; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <i class="fa-solid fa-arrow-down-left"></i> Deposit History
+            </button>
+            <button type="button" id="tab-tx-withdraw" onclick="switchTxHistoryTab('withdraw')" style="flex: 1; height: 38px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-weight: 800; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <i class="fa-solid fa-arrow-up-right"></i> Withdrawal History
+            </button>
+          </div>
+
+          <!-- Full Screen List Container -->
+          <div id="tx-history-full-list" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
+            <div style="padding: 20px; text-align: center; color: var(--color-text-muted); font-size: 13px;">Loading transactions...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 8. BET RECORDS FULL SCREEN ================= -->
+      <section id="screen-bet-records" class="screen" style="background: var(--bg-app);">
+        <header class="auth-header" style="background: rgba(18, 9, 36, 0.98); border-bottom: 1px solid var(--border-gold); position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+          <button class="icon-btn" onclick="openMineScreenOrBack()" title="Back">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div style="font-size: 15px; font-weight: 900; color: var(--color-text-gold);">📑 Bet Records</div>
+          <button type="button" onclick="renderMyBetRecordsInScreen()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 11px; padding: 4px 10px; border-radius: 6px; cursor: pointer;">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </header>
+
+        <div style="padding: 16px; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <div id="bet-records-full-list" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
+            <div style="padding: 20px; text-align: center; color: var(--color-text-muted); font-size: 13px;">Loading bet records...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOTTOM NAVIGATION BAR - FIXED TO MOBILE FRAME -->
+      <nav class="bottom-nav">
+        <a class="nav-tab active" onclick="switchTab('home')">
+          <i class="fa-solid fa-house nav-icon"></i>
+          <span>Home</span>
+        </a>
+        <a class="nav-tab" onclick="switchTab('promo')">
+          <i class="fa-solid fa-gift nav-icon"></i>
+          <span>Promo</span>
+        </a>
+        <a class="nav-tab" onclick="switchTab('wheel')">
+          <i class="fa-solid fa-arrows-spin nav-icon"></i>
+          <span>Wheel</span>
+        </a>
+        <a class="nav-tab" onclick="switchTab('earn')">
+          <i class="fa-solid fa-sack-dollar nav-icon"></i>
+          <span>Earn</span>
+        </a>
+        <a class="nav-tab" onclick="switchTab('mine')">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span>Mine</span>
+        </a>
+      </nav>
+
+    </div>
+  </div>
+
+
+  <!-- REUSABLE MODAL DIALOG -->
+  <div id="global-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div id="modal-icon" class="modal-icon">🎁</div>
+      <div id="modal-title" class="modal-title">Reward Claimed!</div>
+      <div id="modal-desc" class="modal-desc">You have received ₹100 Free Bonus into your wallet!</div>
+      <button class="btn-primary-gold" style="height: 44px;" onclick="closeModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- BET RECORDS MODAL DIALOG -->
+  <div id="modal-bet-records" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 440px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+        <div style="font-size: 16px; font-weight: 800; color: var(--color-text-gold); display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-receipt"></i> My Bet Records
+        </div>
+        <button type="button" onclick="closeBetRecordsModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 0 4px;">✕</button>
+      </div>
+
+      <div id="modal-bet-records-list" style="overflow-y: auto; flex: 1; min-height: 200px; max-height: 60vh;">
+        <div style="padding: 20px; text-align: center; color: var(--color-text-muted); font-size: 13px;">Loading bet records...</div>
+      </div>
+
+      <div style="margin-top: 14px; text-align: center;">
+        <button type="button" class="btn-primary-gold" style="height: 40px; font-size: 13px; margin: 0; width: 100%;" onclick="closeBetRecordsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSACTION HISTORY MODAL DIALOG -->
+  <div id="modal-tx-history" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 460px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+        <div style="font-size: 16px; font-weight: 800; color: var(--color-text-gold); display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
+        </div>
+        <button type="button" onclick="closeTransactionHistoryModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 0 4px;">✕</button>
+      </div>
+
+      <!-- Tabs: Deposit History vs Withdrawal History -->
+      <div style="display: flex; gap: 8px; margin-bottom: 14px; background: rgba(15, 23, 42, 0.6); padding: 4px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+        <button type="button" id="tab-tx-deposit" onclick="switchTxHistoryTab('deposit')" style="flex: 1; height: 36px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: 800; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-solid fa-arrow-down-left"></i> Deposit History
+        </button>
+        <button type="button" id="tab-tx-withdraw" onclick="switchTxHistoryTab('withdraw')" style="flex: 1; height: 36px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-weight: 800; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-solid fa-arrow-up-right"></i> Withdrawal History
+        </button>
+      </div>
+
+      <!-- History Items Container -->
+      <div id="modal-tx-history-list" style="overflow-y: auto; flex: 1; min-height: 220px; max-height: 55vh; display: flex; flex-direction: column; gap: 10px;">
+        <div style="padding: 20px; text-align: center; color: var(--color-text-muted); font-size: 13px;">Loading transaction history...</div>
+      </div>
+
+      <div style="margin-top: 14px; text-align: center;">
+        <button type="button" class="btn-primary-gold" style="height: 40px; font-size: 13px; margin: 0; width: 100%;" onclick="closeTransactionHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REFERRED MEMBERS BREAKDOWN & COMMISSION FULL PAGE VIEW -->
+  <div id="modal-referral-level-details" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0b0618;">
+    <div style="background: linear-gradient(145deg, #1e1035 0%, #0d061c 100%); width: 100%; max-width: 480px; height: 100%; max-height: 100vh; padding: 16px; display: flex; flex-direction: column; box-sizing: border-box;">
+      
+      <!-- Page Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onclick="closeReferralMemberDetailsModal()" style="background: rgba(255,255,255,0.1); border: none; color: #ffe066; font-size: 16px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">◀</button>
+          <div>
+            <h3 id="ref-modal-level-title" style="font-size: 16px; font-weight: 900; color: var(--color-text-gold); margin: 0; display: flex; align-items: center; gap: 6px;">
+              🥇 Level 1 Referred Members
+            </h3>
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-top: 2px;">Commission Breakdown per User</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Filters Scrollable Bar (Clean English Text) -->
+      <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none;">
+        <button type="button" id="ref-filter-btn-all" onclick="setReferralDateFilter('all')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">All Time</button>
+        <button type="button" id="ref-filter-btn-today" onclick="setReferralDateFilter('today')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">Today</button>
+        <button type="button" id="ref-filter-btn-yesterday" onclick="setReferralDateFilter('yesterday')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">Yesterday</button>
+        <button type="button" id="ref-filter-btn-this_month" onclick="setReferralDateFilter('this_month')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">This Month</button>
+        <button type="button" id="ref-filter-btn-last_30_days" onclick="setReferralDateFilter('last_30_days')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">Last 30 Days</button>
+        <button type="button" id="ref-filter-btn-custom" onclick="setReferralDateFilter('custom')" style="padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.2s;">Custom Range 📅</button>
+      </div>
+
+      <!-- Custom Date Inputs Container (Hidden by default) -->
+      <div id="ref-custom-date-container" style="display: none; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 166, 35, 0.3); border-radius: 12px; padding: 10px; margin-bottom: 12px;">
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1;">
+            <label style="font-size: 10px; color: #94a3b8; font-weight: 700;">From Date</label>
+            <input type="date" id="ref-custom-start-date" class="form-input" style="width: 100%; height: 34px; font-size: 12px; margin-top: 2px;">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 10px; color: #94a3b8; font-weight: 700;">To Date</label>
+            <input type="date" id="ref-custom-end-date" class="form-input" style="width: 100%; height: 34px; font-size: 12px; margin-top: 2px;">
+          </div>
+        </div>
+        <button type="button" onclick="applyCustomReferralDateFilter()" class="btn-primary-gold" style="height: 32px; font-size: 11px; font-weight: 800; margin: 0; width: 100%;">
+          Apply Custom Date Filter
+        </button>
+      </div>
+
+      <!-- Summary Stats Strip -->
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Members</div>
+          <div style="font-size: 18px; font-weight: 900; color: #ffffff;" id="ref-modal-total-members">0</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Commission in Period</div>
+          <div style="font-size: 20px; font-weight: 900; color: #34d399;" id="ref-modal-period-commission">₹0.00</div>
+        </div>
+      </div>
+
+      <!-- Search Input -->
+      <div style="margin-bottom: 12px;">
+        <input type="text" id="ref-member-search-input" onkeyup="filterReferralMembersSearch(this.value)" placeholder="🔍 Search member by phone / ID..." class="form-input" style="width: 100%; height: 38px; font-size: 12px; border-radius: 10px;">
+      </div>
+
+      <!-- Referred Members Cards List Container (Full Height Scrollable) -->
+      <div id="referral-members-list-container" style="overflow-y: auto; flex: 1; min-height: 250px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 20px; text-align: center; color: #64748b; font-size: 12px;">Loading referred members...</div>
+      </div>
+
+      <!-- Page Footer -->
+      <div style="margin-top: 12px;">
+        <button type="button" class="btn-primary-gold" style="height: 42px; font-size: 13px; font-weight: 800; margin: 0; width: 100%;" onclick="closeReferralMemberDetailsModal()">◀ Back to Referral Center</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      try {
+        var savedSession = sessionStorage.getItem('dubai10x_user_session') || sessionStorage.getItem('amiriwin_user_session');
+        var storedScreen = sessionStorage.getItem('dubai10x_active_screen') || sessionStorage.getItem('amiriwin_active_screen');
+        var storedTab = sessionStorage.getItem('dubai10x_active_tab') || sessionStorage.getItem('amiriwin_active_tab');
+        var urlParams = new URLSearchParams(window.location.search);
+        var refCode = urlParams.get('code') || urlParams.get('ref') || urlParams.get('invite') || urlParams.get('invitation') || urlParams.get('c');
+
+        if (!refCode && window.location.hash) {
+          var hashStr = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : window.location.hash;
+          var hashParams = new URLSearchParams(hashStr);
+          refCode = hashParams.get('code') || hashParams.get('ref') || hashParams.get('invite') || hashParams.get('invitation') || hashParams.get('c');
+        }
+
+        var isUserLoggedIn = false;
+        if (savedSession) {
+          try {
+            var sess = JSON.parse(savedSession);
+            if (sess && sess.isLoggedIn) {
+              isUserLoggedIn = true;
+              targetScreen = sess.activeScreen || storedScreen || 'home';
+              targetTab = sess.activeTab || storedTab || 'home';
+            }
+          } catch(e) {}
+        }
+
+        if (!isUserLoggedIn) {
+          if (refCode) {
+            targetScreen = 'register';
+          } else {
+            targetScreen = storedScreen || 'login';
+            targetTab = storedTab || 'home';
+          }
+        }
+
+        var screens = document.querySelectorAll('.screen-container');
+        screens.forEach(function(s) { s.classList.remove('active'); });
+        var activeScrEl = document.getElementById('screen-' + targetScreen);
+        if (activeScrEl) activeScrEl.classList.add('active');
+
+        if (targetScreen === 'home') {
+          var tabs = document.querySelectorAll('.tab-view-container');
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          var activeTabEl = document.getElementById('tab-' + targetTab);
+          if (activeTabEl) activeTabEl.classList.add('active');
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- ================= FORGOT PASSWORD MODAL (6-DIGIT EMAIL OTP FLOW) ================= -->
+  <div id="modal-forgot-pass" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; z-index: 99999;">
+    <div class="modal-card" style="width: 90%; max-width: 400px; background: #1a1e29; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 16px; padding: 24px; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+        <h3 style="margin: 0; font-size: 18px; color: #ffd700; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-key"></i> Forgot Password</h3>
+        <button type="button" onclick="closeForgotModal()" style="background: transparent; border: none; color: #aaa; font-size: 20px; cursor: pointer; padding: 4px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <!-- Step 1: Send Email OTP -->
+      <div id="forgot-step-1">
+        <p style="font-size: 13px; color: #aaa; margin-bottom: 16px; line-height: 1.5;">Enter your registered <strong>Phone Number or Email ID</strong> below to receive a 6-digit OTP code.</p>
+        <div class="input-group" style="margin-bottom: 16px;">
+          <i class="fa-solid fa-user-shield input-icon"></i>
+          <input type="text" id="forgot-email-input" class="form-input" placeholder="Registered Phone Number or Email" required>
+        </div>
+        <button type="button" class="btn-primary-gold" style="width: 100%; margin-top: 8px; padding: 12px;" onclick="handleSendResetEmailSubmit(event)">Send 6-Digit OTP</button>
+      </div>
+
+      <!-- Step 2: Verify OTP & Set New Password -->
+      <div id="forgot-step-2" style="display: none;">
+        <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 10px; font-size: 12px; color: #22c55e; margin-bottom: 16px; text-align: center;">
+          📩 <strong>OTP Sent!</strong> Check your Gmail inbox for the 6-digit verification code.
+        </div>
+        <div class="input-group" style="margin-bottom: 14px;">
+          <i class="fa-solid fa-shield-halved input-icon"></i>
+          <input type="text" id="reset-otp-input" class="form-input" placeholder="Enter 6-Digit OTP Code" maxlength="6" style="letter-spacing: 3px; font-weight: bold;" required>
+        </div>
+        <div class="input-group" style="margin-bottom: 14px;">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input type="password" id="reset-new-pass" class="form-input" placeholder="Enter New Password" required>
+        </div>
+        <div class="input-group" style="margin-bottom: 16px;">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input type="password" id="reset-confirm-pass" class="form-input" placeholder="Confirm New Password" required>
+        </div>
+        <button type="button" class="btn-primary-gold" style="width: 100%; padding: 12px;" onclick="handleConfirmResetPasswordSubmit(event)">Verify OTP & Update Password</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
