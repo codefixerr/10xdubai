@@ -30,6 +30,18 @@
   --shadow-app: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(138, 43, 226, 0.25);
 }
 
+/* Prevent iOS Safari / Apple devices auto-zoom on input focus */
+input,
+select,
+textarea,
+.form-input,
+.auth-input,
+.input-group input {
+  font-size: 16px !important; /* iOS Safari triggers auto-zoom when font-size < 16px */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
 .form-input {
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(15, 23, 42, 0.65);
@@ -43,6 +55,7 @@
   border-color: rgba(245, 166, 35, 0.5);
   box-shadow: 0 0 10px rgba(245, 166, 35, 0.25);
 }
+
 
 /* Hide default browser number spin buttons for clean dark UI */
 input[type=number]::-webkit-outer-spin-button,
