@@ -62,13 +62,10 @@
 
           <div class="form-options">
             <label class="checkbox-label">
-              <div class="custom-checkbox">
-                <input type="checkbox" id="remember-me" checked>
-                <div class="checkmark"></div>
-              </div>
+              <input type="checkbox" id="remember-me" checked>
               <span>Remember password</span>
             </label>
-            <a href="#" class="forgot-link" onclick="openForgotModal(event)">Forgot Password</a>
+            <a href="javascript:void(0)" class="forgot-link" onclick="openForgotModal(event)">Forgot Password</a>
           </div>
 
           <button type="submit" class="btn-primary-gold" onclick="handleLoginSubmit(event)">Login</button>
@@ -134,12 +131,6 @@
             <input type="text" id="reg-invite" class="form-input" placeholder="Please enter invite code">
           </div>
 
-          <div class="input-group">
-            <i class="fa-solid fa-key input-icon"></i>
-            <input type="text" id="reg-otp" class="form-input" placeholder="Please enter the verification code" required>
-            <button type="button" id="send-otp-btn" class="send-code-btn" onclick="triggerOtpCountdown()">Send</button>
-          </div>
-
           <div class="input-group" style="justify-content: space-between;">
             <i class="fa-solid fa-calculator input-icon"></i>
             <input type="text" id="reg-captcha-input" class="form-input" placeholder="Enter Captcha" style="width: 50%;" required>
@@ -153,6 +144,7 @@
           <button type="button" class="btn-secondary-outline" onclick="switchScreen('login')">Password Login</button>
         </form>
       </section>
+
 
 
       <!-- ================= 3. HOME PAGE SCREEN ================= -->

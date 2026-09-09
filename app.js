@@ -651,7 +651,6 @@ async function handleRegisterSubmit(event) {
   const email = document.getElementById('reg-email')?.value.trim();
   const pass = document.getElementById('reg-pass')?.value.trim();
   const confirmPass = document.getElementById('reg-confirm-pass')?.value.trim();
-  const regOtp = document.getElementById('reg-otp')?.value.trim();
   const captchaInput = document.getElementById('reg-captcha-input')?.value.trim();
 
   if (!phone || phone.length < 10) {
@@ -674,22 +673,12 @@ async function handleRegisterSubmit(event) {
     return;
   }
 
-  if (!regOtp || regOtp.length < 6) {
-    showModal('⚠️ Verification Code Required', 'Please click "Send" and enter the 6-digit code received on your email.');
-    return;
-  }
-
-  const otpVerifyResult = await dbVerifyRegistrationOTP(email, regOtp);
-  if (!otpVerifyResult.success) {
-    showModal('❌ Verification Failed', otpVerifyResult.message);
-    return;
-  }
-
   if (parseInt(captchaInput) !== currentState.captchaResult) {
     showModal('❌ Captcha Error', 'Incorrect Captcha answer. Please try again.');
     refreshCaptcha();
     return;
   }
+
 
   const cleanPhone = phone.slice(-10);
 
