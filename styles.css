@@ -225,23 +225,34 @@ body {
   cursor: pointer;
 }
 
-/* Brand Logo Section */
+/* Brand Logo Section (Logo, Dubai, and 10X in a Single Row) */
 .brand-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  margin: 10px 0 20px 0;
+  justify-content: center;
+  margin: 16px 0 24px 0;
 }
 
 .brand-logo-container {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.brand-cards-icon {
+  font-size: 32px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  animation: float 3s ease-in-out infinite;
 }
 
 .brand-title {
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
   letter-spacing: -0.5px;
   background: linear-gradient(180deg, #ffffff 0%, #d8b4fe 40%, #a855f7 100%);
@@ -252,21 +263,17 @@ body {
 }
 
 .brand-badge {
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 900;
   background: linear-gradient(180deg, #ffe066 0%, #f5a623 50%, #d47a00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: 2px;
-  margin-top: -4px;
+  letter-spacing: 1.5px;
+  margin-top: 0;
   filter: drop-shadow(0 2px 8px rgba(245, 166, 35, 0.5));
+  line-height: 1;
 }
 
-.brand-cards-icon {
-  font-size: 28px;
-  margin-bottom: 4px;
-  animation: float 3s ease-in-out infinite;
-}
 
 @keyframes float {
 
