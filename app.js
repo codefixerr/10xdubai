@@ -63,6 +63,22 @@ function handleUrlHashRouting() {
     const validTabs = ['home', 'promo', 'wheel', 'earn', 'mine'];
     const validScreens = ['login', 'register', 'deposit', 'withdraw', '10x-game', 'flip-coin', 'dragon-tiger', 'tx-history', 'bet-records'];
 
+    if (!currentState.isLoggedIn) {
+      if (hash === 'login') {
+        switchScreen('login');
+        return;
+      }
+      if (hash === 'register') {
+        switchScreen('register');
+        return;
+      }
+      if (hash !== 'home') {
+        showModal('🔒 Login Required', 'Please login or register to access this section.');
+        switchScreen('login');
+        return;
+      }
+    }
+
     if (validTabs.includes(hash)) {
       switchScreen('home');
       if (typeof switchTab === 'function') switchTab(hash);
@@ -185,34 +201,29 @@ async function checkUserSessionOnLoad() {
     }
   }
 
-  // If not logged in, restore guest screen/tab
-  let restoreScreen = storedScreen || 'login';
-  if (validScreenList.includes(hashScreen)) {
-    restoreScreen = hashScreen;
-  }
-  const restoreTab = storedTab || 'home';
+  // If not logged in, ALWAYS default directly to Home screen (Home Tab only)
+  currentState.isLoggedIn = false;
+  updateUserHeader();
 
-  if (restoreScreen === 'login') {
+  if (hashScreen === 'login') {
     switchScreen('login');
-  } else if (restoreScreen === 'register') {
+  } else if (hashScreen === 'register') {
     switchScreen('register');
-  } else if (restoreScreen === '10x-game') {
-    switchScreen('10x-game');
-    if (typeof init10xGame === 'function') init10xGame();
-  } else if (restoreScreen === 'flip-coin') {
-    switchScreen('flip-coin');
-    if (typeof initFlipCoinGame === 'function') initFlipCoinGame();
-  } else if (restoreScreen === 'dragon-tiger') {
-    switchScreen('dragon-tiger');
-    if (typeof initDragonTigerGame === 'function') initDragonTigerGame();
   } else {
     switchScreen('home');
-    await switchTab(restoreTab);
+    await switchTab('home');
   }
 }
 
 // Screen Switcher (login | register | home | deposit | cashier)
 function switchScreen(screenId) {
+  const protectedScreens = ['deposit', 'withdraw', 'cashier', '10x-game', 'flip-coin', 'dragon-tiger', 'tx-history', 'bet-records'];
+  if (!currentState.isLoggedIn && protectedScreens.includes(screenId)) {
+    showModal('🔒 Login Required', 'Please login or register to access games, wallet, and features!');
+    switchScreen('login');
+    return;
+  }
+
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => screen.classList.remove('active'));
 
@@ -222,6 +233,7 @@ function switchScreen(screenId) {
     currentState.activeScreen = screenId;
     targetScreen.scrollTop = 0;
   }
+
 
   if (screenId === 'deposit') {
     renderFrontendDepositMethods();
@@ -1223,6 +1235,12 @@ async function renderEarnTabBonus() {
 
 // Bottom Navigation Tab Switcher
 async function switchTab(tabName) {
+  if (tabName !== 'home' && !currentState.isLoggedIn) {
+    showModal('🔒 Login Required', 'Please login or register to access this section!');
+    switchScreen('login');
+    return;
+  }
+
   const tabs = document.querySelectorAll('.tab-view-container');
   tabs.forEach(tab => tab.classList.remove('active'));
 
@@ -1278,6 +1296,12 @@ function getWeightedWheelPrizeIndex() {
 }
 
 async function spinLuckyWheel() {
+  if (!currentState.isLoggedIn) {
+    showModal('🔒 Login Required', 'Please login or register to spin the lucky wheel!');
+    switchScreen('login');
+    return;
+  }
+
   if (isSpinning) return;
   if (currentState.spinsRemaining <= 0) {
     showModal('🎡 No Spins Available', 'You need a spin credit to spin the wheel. Get 1 Lucky Spin on First Deposit or Single Deposit of ₹15,000+!');
@@ -1449,6 +1473,12 @@ async function syncGamesUIWithStatus() {
 window.syncGamesUIWithStatus = syncGamesUIWithStatus;
 
 function launchGame(gameName) {
+  if (!currentState.isLoggedIn) {
+    showModal('🔒 Login Required', 'Please login or register to play games for real money!');
+    switchScreen('login');
+    return false;
+  }
+
   const statusMap = currentState.gamesStatus || {};
   let gameKey = '';
 
@@ -1489,11 +1519,6 @@ function launchGame(gameName) {
   if (gameName.includes('10X') || gameName.includes('10 Card')) {
     switchScreen('10x-game');
     if (typeof init10xGame === 'function') init10xGame();
-    return;
-  }
-
-  if (!currentState.isLoggedIn) {
-    showModal('🔒 Login Required', 'Please login or register to play games for real money!');
     return;
   }
 
