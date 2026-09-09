@@ -427,4 +427,35 @@ CREATE INDEX IF NOT EXISTS idx_admin_logs_admin_id ON public.admin_activity_logs
 
 ALTER TABLE public.admin_activity_logs DISABLE ROW LEVEL SECURITY;
 
+-- 15. AUTO-CLEANUP FUNCTION: Purges 0-bet empty rounds while keeping latest 15 rounds for trend roadmap
+CREATE OR REPLACE FUNCTION public.cleanup_old_empty_game_rounds()
+RETURNS void AS $$
+BEGIN
+    -- 1. Cleanup 10X Card game 0-bet settled rounds older than the latest 15 rounds
+    DELETE FROM public.game_rounds_10x
+    WHERE id IN (
+        SELECT id FROM public.game_rounds_10x
+        WHERE status = 'SETTLED' AND (total_bets_amount = 0 OR total_bets_amount IS NULL)
+        AND created_at < (
+            SELECT created_at FROM public.game_rounds_10x 
+            ORDER BY created_at DESC 
+            OFFSET 14 LIMIT 1
+        )
+    );
+
+    -- 2. Cleanup Dragon Tiger 0-bet rounds older than the latest 15 rounds
+    DELETE FROM public.dragontiger_rounds
+    WHERE id IN (
+        SELECT id FROM public.dragontiger_rounds
+        WHERE (total_bets = 0 OR total_bets IS NULL)
+        AND created_at < (
+            SELECT created_at FROM public.dragontiger_rounds 
+            ORDER BY created_at DESC 
+            OFFSET 14 LIMIT 1
+        )
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
 

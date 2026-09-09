@@ -2243,10 +2243,38 @@ async function dbSettleRound10x(roundId, winningCardNumber) {
         round_number: currentActiveRound10x.round_number,
         status: 'ACTIVE'
       }]);
+
+      // 🧹 Auto-Cleanup: Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
+      dbCleanup10xOldEmptyRounds().catch(e => console.warn("Auto-cleanup 10x error:", e));
     } catch (err) { console.warn(err); }
   }
 
   return { winningCard: winningCardNumber, totalPayout, adminProfit };
+}
+
+// Auto-Cleanup 0-Bet Old Rounds for 10X Game
+async function dbCleanup10xOldEmptyRounds() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+  try {
+    // Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
+    const { data, error } = await supabaseClient
+      .from('game_rounds_10x')
+      .select('id, round_number, created_at')
+      .order('created_at', { ascending: false })
+      .range(14, 14); // 15th record cutoff
+
+    if (!error && data && data.length > 0 && data[0].created_at) {
+      const cutoffDate = data[0].created_at;
+      await supabaseClient
+        .from('game_rounds_10x')
+        .delete()
+        .lt('created_at', cutoffDate)
+        .eq('status', 'SETTLED')
+        .or('total_bets_amount.eq.0,total_bets_amount.is.null');
+    }
+  } catch (err) {
+    console.warn("dbCleanup10xOldEmptyRounds error:", err);
+  }
 }
 
 let memoryCategoryNames = (function () {
@@ -2527,6 +2555,9 @@ async function dbSaveDragonTigerRound(roundData) {
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     try {
       await supabaseClient.from('dragontiger_rounds').insert([record]);
+
+      // 🧹 Auto-Cleanup: Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
+      dbCleanupDragonTigerOldEmptyRounds().catch(e => console.warn("Auto-cleanup DragonTiger error:", e));
     } catch (err) {
       console.warn("DragonTiger round insert warning:", err.message);
     }
@@ -2536,6 +2567,31 @@ async function dbSaveDragonTigerRound(roundData) {
   if (memoryDragonTigerRounds.length > 50) memoryDragonTigerRounds.pop();
   return record;
 }
+
+// Auto-Cleanup 0-Bet Old Rounds for Dragon Tiger Game
+async function dbCleanupDragonTigerOldEmptyRounds() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+  try {
+    // Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
+    const { data, error } = await supabaseClient
+      .from('dragontiger_rounds')
+      .select('id, created_at')
+      .order('created_at', { ascending: false })
+      .range(14, 14); // 15th record cutoff
+
+    if (!error && data && data.length > 0 && data[0].created_at) {
+      const cutoffDate = data[0].created_at;
+      await supabaseClient
+        .from('dragontiger_rounds')
+        .delete()
+        .lt('created_at', cutoffDate)
+        .or('total_bets.eq.0,total_bets.is.null');
+    }
+  } catch (err) {
+    console.warn("dbCleanupDragonTigerOldEmptyRounds error:", err);
+  }
+}
+
 
 async function dbGetDragonTigerHistory() {
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
