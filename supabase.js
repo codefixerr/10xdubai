@@ -34,13 +34,22 @@ let memorySettings = {
   max_deposit: 20000
 };
 
-let memoryPaymentMethods = [
-  { id: 'PM_UPI', name: 'UPI', upi_id: 'dubai10x.pay@okhdfcbank', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
-  { id: 'PM_PHONEPE', name: 'PhonePe', upi_id: 'dubai10x.pay@ybl', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
-  { id: 'PM_PAYTM', name: 'Paytm', upi_id: 'dubai10x.pay@paytm', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
-  { id: 'PM_ICASH', name: 'iCash.one', upi_id: 'icash.pay@upi', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
-  { id: 'PM_UTR', name: 'UPI_utr', upi_id: 'dubai10x.pay@okhdfcbank', qr_code_url: '', status: 'OFF', max_limit: 60000.00, current_total: 0.00 }
-];
+let memoryPaymentMethods = (function () {
+  try {
+    const saved = localStorage.getItem('amiriwin_payment_methods');
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) { }
+  return [
+    { id: 'PM_UPI', name: 'UPI', upi_id: 'dubai10x.pay@okhdfcbank', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
+    { id: 'PM_PHONEPE', name: 'PhonePe', upi_id: 'dubai10x.pay@ybl', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
+    { id: 'PM_PAYTM', name: 'Paytm', upi_id: 'dubai10x.pay@paytm', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
+    { id: 'PM_ICASH', name: 'iCash.one', upi_id: 'icash.pay@upi', qr_code_url: '', status: 'ON', max_limit: 60000.00, current_total: 0.00 },
+    { id: 'PM_UTR', name: 'UPI_utr', upi_id: 'dubai10x.pay@okhdfcbank', qr_code_url: '', status: 'OFF', max_limit: 60000.00, current_total: 0.00 }
+  ];
+})();
 
 let memoryDeposits = [];
 
@@ -661,7 +670,7 @@ async function dbGetPaymentMethods() {
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient.from('payment_methods').select('*').order('created_at', { ascending: true });
-      if (!error && data && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         memoryPaymentMethods = data.map(pm => ({
           id: pm.id,
           name: pm.name,
@@ -671,6 +680,7 @@ async function dbGetPaymentMethods() {
           max_limit: pm.max_limit !== undefined && pm.max_limit !== null ? parseFloat(pm.max_limit) : 60000.00,
           current_total: pm.current_total !== undefined && pm.current_total !== null ? parseFloat(pm.current_total) : 0.00
         }));
+        try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
         return memoryPaymentMethods;
       }
     } catch (err) { console.warn("Payment Methods Fetch Warning:", err.message); }
@@ -690,6 +700,7 @@ async function dbAddPaymentMethod(name, upiId, qrCodeUrl = '', status = 'ON', ma
   }
 
   memoryPaymentMethods.push(record);
+  try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
   return record;
 }
 
@@ -702,6 +713,7 @@ async function dbUpdatePaymentMethodStatus(id, newStatus) {
 
   const idx = memoryPaymentMethods.findIndex(m => m.id === id);
   if (idx !== -1) memoryPaymentMethods[idx].status = newStatus;
+  try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
 }
 
 async function dbUpdatePaymentMethod(id, updates) {
@@ -715,6 +727,7 @@ async function dbUpdatePaymentMethod(id, updates) {
   if (idx !== -1) {
     memoryPaymentMethods[idx] = { ...memoryPaymentMethods[idx], ...updates };
   }
+  try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
   return true;
 }
 
@@ -730,17 +743,22 @@ async function dbResetPaymentMethodTotal(id) {
     memoryPaymentMethods[idx].current_total = 0.00;
     memoryPaymentMethods[idx].status = 'ON';
   }
+  try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
   return true;
 }
 
 async function dbDeletePaymentMethod(id) {
   if (supabaseClient) {
     try {
-      await supabaseClient.from('payment_methods').delete().eq('id', id);
-    } catch (err) { console.warn(err); }
+      const { error } = await supabaseClient.from('payment_methods').delete().eq('id', id);
+      if (error) console.error("Payment Method Delete DB Error:", error);
+    } catch (err) { console.warn("Payment Method Delete Error:", err); }
   }
   memoryPaymentMethods = memoryPaymentMethods.filter(m => m.id !== id);
+  try { localStorage.setItem('amiriwin_payment_methods', JSON.stringify(memoryPaymentMethods)); } catch(e) {}
+  return true;
 }
+
 
 // --- DEPOSITS & UTR SUBMISSION OPERATIONS ---
 async function dbSubmitDepositUTR(userId, phone, amount, utrNumber, method = 'UPI', proofUrl = '') {
