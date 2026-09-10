@@ -79,13 +79,19 @@
           <i class="fa-solid fa-users"></i>
           <span>Registered Users</span>
         </a>
-        <a class="admin-nav-item" id="nav-deposits" onclick="switchAdminSection('deposits')">
-          <i class="fa-solid fa-money-bill-transfer"></i>
-          <span>Pending Deposits</span>
+        <a class="admin-nav-item" id="nav-deposits" onclick="switchAdminSection('deposits')" style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-money-bill-transfer"></i>
+            <span>Pending Deposits</span>
+          </div>
+          <span id="nav-badge-deposits" style="display: none; background: #ef4444; color: white; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);">0</span>
         </a>
-        <a class="admin-nav-item" id="nav-withdrawals" onclick="switchAdminSection('withdrawals')">
-          <i class="fa-solid fa-hand-holding-dollar"></i>
-          <span>User Withdrawals</span>
+        <a class="admin-nav-item" id="nav-withdrawals" onclick="switchAdminSection('withdrawals')" style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+            <span>User Withdrawals</span>
+          </div>
+          <span id="nav-badge-withdrawals" style="display: none; background: #f59e0b; color: #000; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);">0</span>
         </a>
         <a class="admin-nav-item" id="nav-settings" onclick="switchAdminSection('settings')">
           <i class="fa-solid fa-qrcode"></i>
@@ -1468,9 +1474,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=20260910_06"></script>
-  <script src="supabase.js?v=20260910_06"></script>
-  <script src="admin.js?v=20260910_06"></script>
+  <script src="config.js?v=20260910_07"></script>
+  <script src="supabase.js?v=20260910_07"></script>
+  <script src="admin.js?v=20260910_07"></script>
 </body>
 
 </html>

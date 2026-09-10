@@ -5,7 +5,224 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAdminAuth();
 });
 
-// Check Admin Session Auth
+// --- ADMIN REAL-TIME NOTIFICATIONS & LIVE AUTO-SYNC ENGINE ---
+let adminRealtimeChannel = null;
+let adminAutoRefreshTimer = null;
+let knownDepositIds = new Set();
+let knownWithdrawalIds = new Set();
+let isInitialRealtimeLoad = true;
+
+function playAdminNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {}
+}
+
+function showAdminLiveToast(title, message, type = 'deposit') {
+  let toastContainer = document.getElementById('admin-toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'admin-toast-container';
+    toastContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 999999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; pointer-events: auto;';
+    document.body.appendChild(toastContainer);
+  }
+
+  const toast = document.createElement('div');
+  const bgColor = type === 'deposit' 
+    ? 'linear-gradient(135deg, #065f46, #059669)' 
+    : (type === 'withdraw' ? 'linear-gradient(135deg, #92400e, #d97706)' : 'linear-gradient(135deg, #1e1b4b, #312e81)');
+  
+  toast.style.cssText = `background: ${bgColor}; color: #ffffff; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 15px rgba(16,185,129,0.3); border: 1px solid rgba(255,255,255,0.25); font-size: 13px; cursor: pointer; transition: all 0.3s ease; transform: translateX(120%);`;
+  
+  toast.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 14px; margin-bottom: 4px;">
+      <span>${title}</span>
+      <span style="font-size: 10px; opacity: 0.85; background: rgba(0,0,0,0.2); padding: 1px 6px; border-radius: 4px;">JUST NOW</span>
+    </div>
+    <div style="font-size: 12px; font-weight: 600; opacity: 0.95; line-height: 1.4;">${message}</div>
+  `;
+
+  toast.onclick = () => {
+    if (type === 'deposit') switchAdminSection('deposits');
+    if (type === 'withdraw') switchAdminSection('withdrawals');
+    toast.remove();
+  };
+
+  toastContainer.appendChild(toast);
+  
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(0)';
+  });
+
+  playAdminNotificationSound();
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(120%)';
+    setTimeout(() => toast.remove(), 400);
+  }, 6500);
+}
+
+function startAdminRealtimeSync() {
+  if (adminAutoRefreshTimer) {
+    clearInterval(adminAutoRefreshTimer);
+  }
+
+  // 1. Supabase Realtime Channels for Instant WebSocket Push Updates
+  if (supabaseClient) {
+    try {
+      if (adminRealtimeChannel) {
+        supabaseClient.removeChannel(adminRealtimeChannel);
+      }
+
+      adminRealtimeChannel = supabaseClient.channel('admin-live-realtime-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, async (payload) => {
+          console.log('⚡ Realtime Deposit Push:', payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            knownDepositIds.add(payload.new.id);
+            showAdminLiveToast(
+              '💰 New Deposit Request!',
+              `User <b>${payload.new.user_id}</b> submitted ₹${Number(payload.new.amount).toLocaleString('en-IN')} (UTR: ${payload.new.utr_number}) via ${payload.new.method || 'UPI'}`,
+              'deposit'
+            );
+          }
+          await renderAdminDeposits();
+          if (typeof renderAdminProfitAnalytics === 'function') renderAdminProfitAnalytics();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, async (payload) => {
+          console.log('⚡ Realtime Withdrawal Push:', payload);
+          if (payload.eventType === 'INSERT' && payload.new) {
+            knownWithdrawalIds.add(payload.new.id);
+            showAdminLiveToast(
+              '💸 New Withdrawal Request!',
+              `User <b>${payload.new.user_id}</b> requested withdrawal of ₹${Number(payload.new.amount).toLocaleString('en-IN')}`,
+              'withdraw'
+            );
+          }
+          if (typeof loadAdminWithdrawals === 'function') await loadAdminWithdrawals();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async () => {
+          await renderAdminUsers();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_methods' }, async () => {
+          await renderAdminPaymentMethods();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bet_records' }, async () => {
+          if (typeof renderAdminAllBetsHistory === 'function') renderAdminAllBetsHistory();
+          if (typeof renderAdminProfitAnalytics === 'function') renderAdminProfitAnalytics();
+        })
+        .subscribe((status) => {
+          console.log('📡 Admin Realtime Subscription Status:', status);
+        });
+    } catch (err) {
+      console.warn('Realtime Channel Subscription Warning:', err);
+    }
+  }
+
+  // 2. High Frequency Polling Interval (every 2.5 seconds)
+  adminAutoRefreshTimer = setInterval(async () => {
+    await pollAdminRealtimeData();
+  }, 2500);
+
+  pollAdminRealtimeData();
+}
+
+async function pollAdminRealtimeData() {
+  const activeSection = sessionStorage.getItem('admin_active_section') || 'profit';
+
+  // 1. Sync Deposits & Badge Counter
+  try {
+    const deposits = await dbGetPendingDeposits();
+    const pendingDeps = (deposits || []).filter(d => d.status === 'Pending');
+    const pendingCount = pendingDeps.length;
+
+    const statPendingEl = document.getElementById('stat-pending-deposits');
+    if (statPendingEl) statPendingEl.innerText = pendingCount;
+
+    const navBadgeDep = document.getElementById('nav-badge-deposits');
+    if (navBadgeDep) {
+      if (pendingCount > 0) {
+        navBadgeDep.innerText = pendingCount;
+        navBadgeDep.style.display = 'inline-block';
+      } else {
+        navBadgeDep.style.display = 'none';
+      }
+    }
+
+    if (!isInitialRealtimeLoad) {
+      pendingDeps.forEach(dep => {
+        if (!knownDepositIds.has(dep.id)) {
+          knownDepositIds.add(dep.id);
+          showAdminLiveToast(
+            '💰 New Deposit Request!',
+            `User <b>${dep.user_id}</b> submitted ₹${Number(dep.amount).toLocaleString('en-IN')} (UTR: ${dep.utr_number}) via ${dep.method}`,
+            'deposit'
+          );
+        }
+      });
+    } else {
+      pendingDeps.forEach(dep => knownDepositIds.add(dep.id));
+    }
+
+    if (activeSection === 'deposits') {
+      await renderAdminDeposits();
+    }
+  } catch (e) {
+    console.warn('Poll deposits error:', e);
+  }
+
+  // 2. Sync Withdrawals & Badge Counter
+  try {
+    const withdrawals = await dbGetAllWithdrawals();
+    const pendingWds = (withdrawals || []).filter(w => w.status === 'Pending');
+    const pendingWdCount = pendingWds.length;
+
+    const navBadgeWd = document.getElementById('nav-badge-withdrawals');
+    if (navBadgeWd) {
+      if (pendingWdCount > 0) {
+        navBadgeWd.innerText = pendingWdCount;
+        navBadgeWd.style.display = 'inline-block';
+      } else {
+        navBadgeWd.style.display = 'none';
+      }
+    }
+
+    if (!isInitialRealtimeLoad) {
+      pendingWds.forEach(wd => {
+        if (!knownWithdrawalIds.has(wd.id)) {
+          knownWithdrawalIds.add(wd.id);
+          showAdminLiveToast(
+            '💸 New Withdrawal Request!',
+            `User <b>${wd.user_id}</b> requested withdrawal of ₹${Number(wd.amount).toLocaleString('en-IN')}`,
+            'withdraw'
+          );
+        }
+      });
+    } else {
+      pendingWds.forEach(wd => knownWithdrawalIds.add(wd.id));
+    }
+
+    if (activeSection === 'withdrawals') {
+      if (typeof loadAdminWithdrawals === 'function') await loadAdminWithdrawals();
+    }
+  } catch (e) {
+    console.warn('Poll withdrawals error:', e);
+  }
+
+  isInitialRealtimeLoad = false;
+}
+
 // Check Admin Session Auth
 function checkAdminAuth() {
   const isAuthenticated = sessionStorage.getItem('admin_authenticated') === 'true';
@@ -41,6 +258,7 @@ async function loadAdminDashboardData() {
   await renderAdminPaymentMethods();
   await loadPaymentSettingsForm();
   await loadAdminAnimalsConfigForm();
+  startAdminRealtimeSync();
 }
 
 async function loadPaymentSettingsForm() {
@@ -100,6 +318,10 @@ async function handleAdminLogin(event) {
 
 // Handle Admin Logout
 function handleAdminLogout() {
+  if (adminAutoRefreshTimer) clearInterval(adminAutoRefreshTimer);
+  if (supabaseClient && adminRealtimeChannel) {
+    try { supabaseClient.removeChannel(adminRealtimeChannel); } catch (e) {}
+  }
   sessionStorage.removeItem('admin_authenticated');
   sessionStorage.removeItem('admin_role');
   sessionStorage.removeItem('admin_user');
