@@ -904,22 +904,41 @@
 
           <!-- Deposit Amount Selection -->
           <div style="margin-top: 24px;">
-            <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Deposit Amount (200 - 20,000 INR)</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Deposit Amount (200 - 60,000 INR)</label>
+              <span style="font-size: 11px; color: #34d399; font-weight: 700;">Min ₹200</span>
+            </div>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(20, 10, 40, 0.9); border: 1px solid rgba(16, 185, 129, 0.5); padding: 12px 16px; border-radius: var(--radius-md); margin-top: 6px;">
-              <input type="number" id="deposit-amount-input" class="form-input" style="font-size: 18px; font-weight: 800; color: white;" value="1000" oninput="handleDepositAmountInputChange(this)" onkeyup="handleDepositAmountInputChange(this)">
+            <div style="display: flex; align-items: center; background: rgba(20, 10, 40, 0.9); border: 1.5px solid rgba(16, 185, 129, 0.6); padding: 10px 16px; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+              <span style="font-size: 20px; font-weight: 900; color: #34d399; margin-right: 8px;">₹</span>
+              <input type="number" id="deposit-amount-input" class="form-input" style="font-size: 20px; font-weight: 800; color: white; background: transparent; border: none; width: 100%; outline: none;" placeholder="Enter custom amount e.g. 3000" value="1000" oninput="handleDepositAmountInputChange(this)" onkeyup="handleDepositAmountInputChange(this)" onchange="handleDepositAmountInputChange(this)">
             </div>
 
-            <!-- Amount Preset Buttons -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px;">
+            <!-- Amount Preset Buttons (Quick Select) -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;">
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 500)">
+                <span class="preset-val">₹500</span>
+              </div>
               <div class="amount-preset-card active" onclick="selectAmountPreset(this, 1000)">
                 <span class="preset-val">₹1,000</span>
               </div>
               <div class="amount-preset-card" onclick="selectAmountPreset(this, 2000)">
                 <span class="preset-val">₹2,000</span>
               </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 3000)">
+                <span class="preset-val">₹3,000</span>
+              </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 5000)">
+                <span class="preset-val">₹5,000</span>
+              </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 10000)">
+                <span class="preset-val">₹10,000</span>
+              </div>
               <div class="amount-preset-card" onclick="selectAmountPreset(this, 20000)">
                 <span class="preset-val">₹20,000</span>
+              </div>
+              <div class="amount-preset-card" onclick="selectAmountPreset(this, 50000)">
+                <span class="preset-val">₹50,000</span>
               </div>
             </div>
           </div>
@@ -1630,8 +1649,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=20260910_05"></script>
-  <script src="supabase.js?v=20260910_05"></script>
-  <script src="app.js?v=20260910_05"></script>
+  <script src="config.js?v=20260910_06"></script>
+  <script src="supabase.js?v=20260910_06"></script>
+  <script src="app.js?v=20260910_06"></script>
 </body>
 </html>

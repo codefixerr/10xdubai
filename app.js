@@ -924,20 +924,29 @@ async function openDepositScreen() {
   }
 
   await renderFrontendDepositMethods();
+
+  const input = document.getElementById('deposit-amount-input');
+  if (input) {
+    const val = parseFloat(input.value) || parseFloat(currentState.depositAmount) || 1000;
+    input.value = val;
+    handleDepositAmountInputChange(input);
+  }
+
   switchScreen('deposit');
 }
 
 
 function selectAmountPreset(btnEl, amount) {
   const input = document.getElementById('deposit-amount-input');
-  if (input) input.value = amount;
+  if (input) {
+    input.value = amount;
+  }
   currentState.depositAmount = amount;
   currentCashierAmount = amount;
 
-  const parent = btnEl?.parentElement;
-  if (parent) {
-    parent.querySelectorAll('.amount-preset-card').forEach(b => b.classList.remove('active'));
-    if (btnEl && btnEl.classList) btnEl.classList.add('active');
+  document.querySelectorAll('#screen-deposit .amount-preset-card').forEach(b => b.classList.remove('active'));
+  if (btnEl && btnEl.classList) {
+    btnEl.classList.add('active');
   }
 }
 
@@ -946,10 +955,11 @@ function handleDepositAmountInputChange(inputEl) {
   currentState.depositAmount = amt;
   currentCashierAmount = amt;
 
-  const presets = document.querySelectorAll('.amount-preset-card');
+  const presets = document.querySelectorAll('#screen-deposit .amount-preset-card');
   presets.forEach(p => {
     const valText = p.innerText.replace(/[^0-9]/g, '');
-    if (parseInt(valText) === amt) {
+    const presetAmt = parseInt(valText, 10);
+    if (amt > 0 && presetAmt === amt) {
       p.classList.add('active');
     } else {
       p.classList.remove('active');
