@@ -2108,10 +2108,11 @@ function start10xRoundTimer() {
       state10x.selectedCardNumber = null;
       updateSelectedBetDisplayInfo();
       render10xCardsGrid();
+      render10xMyBetHistory();
     }
 
     if (sync.isResultPhase) {
-      // 30-SECOND RESULT REVEAL PHASE (NO BETS ALLOWED)
+      // RESULT REVEAL PHASE (NO BETS ALLOWED)
       if (state10x.lastSettledRoundId !== sync.roundId) {
         state10x.lastSettledRoundId = sync.roundId;
         state10x.isSettling = true;
@@ -2141,10 +2142,12 @@ function start10xRoundTimer() {
         statusTag.style.color = '#fbbf24';
       }
     } else {
-      // 120-SECOND BETTING & ROUND PHASE
+      // BETTING & ROUND PHASE
       if (state10x.isSettling) {
         state10x.isSettling = false;
         if (resultBanner) resultBanner.style.display = 'none';
+        state10x.selectedCardNumber = null;
+        updateSelectedBetDisplayInfo();
         render10xCardsGrid();
         render10xMyBetHistory();
       }
@@ -2391,7 +2394,9 @@ async function render10xMyBetHistory() {
         effectiveWinCard = parseInt(state10x.lastWinningCardMap[b.round_id] || state10x.lastWinningCardMap[bRoundNum] || 0);
       }
       if (!effectiveWinCard && bRoundNum > 0) {
-        effectiveWinCard = (bRoundNum % 10) + 1;
+        effectiveWinCard = (typeof getMasterWinningCardForRound === 'function')
+          ? getMasterWinningCardForRound(bRoundNum)
+          : (((bRoundNum % 10) + 1));
       }
 
       let effectiveStatus = statusUpper;
@@ -2483,7 +2488,7 @@ function change10xBetHistoryPage(delta) {
 // 100% GLOBALLY SYNCHRONIZED MASTER WINNING CARD ENGINE (IDENTICAL FOR ALL USERS ACROSS THE GLOBE)
 async function calculateSmartWinningCard(round, bets) {
   const roundNumClean = parseInt(String(round ? (round.round_number || round.id || '10000') : '10000').replace(/[^0-9]/g, '')) || 10000;
-  const cleanRoundId = round ? (round.id || `ROUND_${roundNumClean}`) : `ROUND_${roundNumClean}`;
+  const cleanRoundId = `ROUND_${roundNumClean}`;
 
   // 0. Lock Check: If winning card was ALREADY determined for this round in memory or session, return it immediately!
   if (!state10x.lastWinningCardMap) state10x.lastWinningCardMap = {};
@@ -2520,7 +2525,7 @@ async function calculateSmartWinningCard(round, bets) {
         }
       }
 
-      // Check 2: game_settings table (active_preset_card)
+      // Check 2: game_settings table (active_preset_card) - ONLY if matching this exact round
       if (!winningCard) {
         const { data: gData } = await supabaseClient
           .from('game_settings')
@@ -2529,7 +2534,7 @@ async function calculateSmartWinningCard(round, bets) {
           .maybeSingle();
         if (gData && gData.value && gData.value.presetCard > 0) {
           const gRound = String(gData.value.roundId || '');
-          if (!gRound || gRound === cleanRoundId || gRound.includes(String(roundNumClean))) {
+          if (gRound === cleanRoundId || gRound === String(roundNumClean)) {
             winningCard = parseInt(gData.value.presetCard);
           }
         }
@@ -2539,15 +2544,15 @@ async function calculateSmartWinningCard(round, bets) {
     }
   }
 
-  // Check 3: Local storage fallbacks
+  // Check 3: Local storage fallbacks - ONLY if matching this exact round
   if (!winningCard) {
+    const storedRoundSpecificCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + cleanRoundId) || '0');
     const storedPresetRoundId = localStorage.getItem('amiriwin_active_preset_round_id');
     const storedPresetCard = parseInt(localStorage.getItem('amiriwin_active_preset_card') || '0');
-    const storedRoundSpecificCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + cleanRoundId) || '0');
     
     if (storedRoundSpecificCard > 0) {
       winningCard = storedRoundSpecificCard;
-    } else if (storedPresetCard > 0 && (!storedPresetRoundId || storedPresetRoundId === cleanRoundId || storedPresetRoundId.includes(String(roundNumClean)))) {
+    } else if (storedPresetCard > 0 && (storedPresetRoundId === cleanRoundId || storedPresetRoundId === String(roundNumClean))) {
       winningCard = storedPresetCard;
     }
   }
@@ -2555,11 +2560,15 @@ async function calculateSmartWinningCard(round, bets) {
   // 2. If no Admin Preset is in DB, use the 100% Globally Synchronized Deterministic Seed (Mulberry32 PRNG)
   // This guarantees that ALL users across the world receive the EXACT identical card for this round!
   if (!winningCard || winningCard < 1 || winningCard > 10) {
-    let t = (roundNumClean + 0x6D2B79F5) | 0;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    winningCard = 1 + (Math.floor(rnd * 10) % 10);
+    winningCard = (typeof getMasterWinningCardForRound === 'function')
+      ? getMasterWinningCardForRound(roundNumClean)
+      : (() => {
+          let t = (roundNumClean + 0x6D2B79F5) | 0;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          return 1 + (Math.floor(rnd * 10) % 10);
+        })();
     console.log(`🎲 Master Deterministic Synchronized Winner for Round #${roundNumClean}: Card #${winningCard}`);
   } else {
     console.log(`👑 Admin Preset Winner for Round #${roundNumClean}: Card #${winningCard}`);
@@ -2825,16 +2834,6 @@ async function settleCurrent10xRound() {
   updateSelectedBetDisplayInfo();
 
   await render10xMyBetHistory();
-
-  // 30-Second Result Reveal Display Duration (User requested 30s reveal duration after result is shown)
-  setTimeout(async () => {
-    if (resultBanner) resultBanner.style.display = 'none';
-    state10x.isSettling = false;
-    state10x.selectedCardNumber = null;
-    updateSelectedBetDisplayInfo();
-    await render10xCardsGrid();
-    await render10xMyBetHistory();
-  }, 30000); // 30 SECONDS REVEAL DURATION!
 }
 
 // --- AUDIO SYNTHESIZER & FLIP-COIN ANIMATION ENGINE ---

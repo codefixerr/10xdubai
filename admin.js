@@ -2032,12 +2032,15 @@ async function renderAdminAllBetsHistory() {
         winningCard = rounds10xMap.get(cleanRoundId);
       }
       if (!winningCard) {
-        // Deterministic Mulberry32 PRNG seed for this round
-        let t = (bRoundNum + 0x6D2B79F5) | 0;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        winningCard = 1 + (Math.floor(rnd * 10) % 10);
+        winningCard = (typeof getMasterWinningCardForRound === 'function')
+          ? getMasterWinningCardForRound(bRoundNum)
+          : (() => {
+              let t = (bRoundNum + 0x6D2B79F5) | 0;
+              t = Math.imul(t ^ (t >>> 15), t | 1);
+              t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+              const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+              return 1 + (Math.floor(rnd * 10) % 10);
+            })();
       }
 
       const betAmt = parseFloat(b.bet_amount || 0);

@@ -1049,16 +1049,19 @@ if (typeof window !== 'undefined') {
           .on('broadcast', { event: 'preset_updated' }, payload => {
             if (payload && payload.payload && payload.payload.presetCard > 0) {
               const pCard = parseInt(payload.payload.presetCard);
-              const pRound = payload.payload.roundId;
-              if (currentActiveRound10x) {
+              const rawRound = String(payload.payload.roundId || '');
+              const cleanPRound = rawRound.startsWith('ROUND_') ? rawRound : `ROUND_${rawRound}`;
+              const roundNumOnly = cleanPRound.replace(/[^0-9]/g, '');
+
+              if (currentActiveRound10x && (currentActiveRound10x.id === cleanPRound || String(currentActiveRound10x.round_number) === roundNumOnly)) {
                 currentActiveRound10x.preset_winning_card = pCard;
               }
               try {
-                localStorage.setItem('amiriwin_preset_card_' + pRound, String(pCard));
+                localStorage.setItem('amiriwin_preset_card_' + cleanPRound, String(pCard));
+                localStorage.setItem('amiriwin_active_preset_round_id', cleanPRound);
                 localStorage.setItem('amiriwin_active_preset_card', String(pCard));
-                localStorage.setItem('amiriwin_active_preset_round_id', String(pRound));
               } catch(e) {}
-              console.log(`👑 Realtime Preset Winner Received: Card #${pCard} for Round ${pRound}`);
+              console.log(`👑 Realtime Preset Winner Received: Card #${pCard} for Round ${cleanPRound}`);
             }
           })
           .subscribe();
@@ -1188,6 +1191,20 @@ function getGlobalSynchronizedRoundInfo() {
   };
 }
 
+// 100% GLOBALLY SYNCHRONIZED MASTER DETERMINISTIC WINNING CARD ENGINE (MULBERRY32 PRNG)
+function getMasterWinningCardForRound(roundNum) {
+  const cleanNum = parseInt(String(roundNum || 10000).replace(/[^0-9]/g, '')) || 10000;
+  let t = (cleanNum + 0x6D2B79F5) | 0;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return 1 + (Math.floor(rnd * 10) % 10);
+}
+
+if (typeof window !== 'undefined') {
+  window.getMasterWinningCardForRound = getMasterWinningCardForRound;
+}
+
 // --- DYNAMIC 3-TIER REFERRAL COMMISSION CONFIGURATION ---
 let memoryCommissionConfig = { level1_pct: 1.5, level2_pct: 0.5, level3_pct: 0.2, min_claim_amount: 1000.00 };
 let memoryReferralEarnings = [];
@@ -1281,8 +1298,17 @@ let memoryUserBets10x = [];
 
 async function dbGetCurrentRound10x() {
   const sync = getGlobalSynchronizedRoundInfo();
-  const savedPresetCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + sync.roundId) || localStorage.getItem('amiriwin_active_preset_card') || '0');
-  const activePresetCard = (currentActiveRound10x && currentActiveRound10x.id === sync.roundId && currentActiveRound10x.preset_winning_card > 0) ? currentActiveRound10x.preset_winning_card : savedPresetCard;
+  const cleanRoundId = sync.roundId;
+  const roundNumStr = String(sync.roundNumber);
+
+  // Read stored preset ONLY if it strictly belongs to this active round
+  let activePresetCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + cleanRoundId) || '0');
+  if (!activePresetCard) {
+    const storedRoundId = localStorage.getItem('amiriwin_active_preset_round_id');
+    if (storedRoundId === cleanRoundId || storedRoundId === roundNumStr) {
+      activePresetCard = parseInt(localStorage.getItem('amiriwin_active_preset_card') || '0');
+    }
+  }
 
   if (!currentActiveRound10x || currentActiveRound10x.round_number !== sync.roundNumber) {
     currentActiveRound10x = {
@@ -1307,8 +1333,16 @@ async function dbGetCurrentRound10x() {
         currentActiveRound10x.preset_winning_card = parseInt(data.preset_winning_card);
       } else {
         const { data: gData } = await supabaseClient.from('game_settings').select('value').eq('key', 'active_preset_card').maybeSingle();
-        if (gData && gData.value && gData.value.presetCard > 0 && (gData.value.roundId === sync.roundId || !gData.value.roundId)) {
-          currentActiveRound10x.preset_winning_card = parseInt(gData.value.presetCard);
+        if (gData && gData.value && gData.value.presetCard > 0) {
+          const gRound = String(gData.value.roundId || '');
+          if (gRound === sync.roundId || gRound === roundNumStr || gRound.includes(roundNumStr)) {
+            currentActiveRound10x.preset_winning_card = parseInt(gData.value.presetCard);
+          } else {
+            // It belonged to an older round! Do not use for current round
+            if (currentActiveRound10x.id === sync.roundId && !activePresetCard) {
+              currentActiveRound10x.preset_winning_card = 0;
+            }
+          }
         }
       }
     } catch(e) {}
@@ -1995,12 +2029,15 @@ async function autoSettlePendingBets() {
       winningCardNumber = parseInt(state10x.lastWinningCardMap[cleanRoundId] || state10x.lastWinningCardMap[bRoundNum] || '0');
     }
     if (!winningCardNumber) {
-      // Deterministic PRNG formula
-      let t = (bRoundNum + 0x6D2B79F5) | 0;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      winningCardNumber = 1 + (Math.floor(rnd * 10) % 10);
+      winningCardNumber = (typeof getMasterWinningCardForRound === 'function')
+        ? getMasterWinningCardForRound(bRoundNum)
+        : (() => {
+            let t = (bRoundNum + 0x6D2B79F5) | 0;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            return 1 + (Math.floor(rnd * 10) % 10);
+          })();
     }
 
     const winningAnimal = animalsConfig.find(a => a.id === winningCardNumber) || { category: winningCardNumber <= 5 ? 'wild' : 'pet' };
@@ -2108,21 +2145,22 @@ async function dbGetUserBets10x(userId, phone) {
 async function dbSetAdminPresetCard10x(roundId, cardNumber) {
   const cardVal = parseInt(cardNumber) || 0;
   const cleanRoundNum = parseInt(String(roundId || '').replace(/[^0-9]/g, '')) || 10000;
+  const cleanRoundId = `ROUND_${cleanRoundNum}`;
 
-  if (currentActiveRound10x) {
+  if (currentActiveRound10x && (currentActiveRound10x.id === cleanRoundId || currentActiveRound10x.round_number === cleanRoundNum)) {
     currentActiveRound10x.preset_winning_card = cardVal;
   }
   try {
-    localStorage.setItem('amiriwin_preset_card_' + roundId, String(cardVal));
+    localStorage.setItem('amiriwin_preset_card_' + cleanRoundId, String(cardVal));
     localStorage.setItem('amiriwin_active_preset_card', String(cardVal));
-    localStorage.setItem('amiriwin_active_preset_round_id', String(roundId));
+    localStorage.setItem('amiriwin_active_preset_round_id', cleanRoundId);
   } catch(e) {}
 
   if (supabaseClient) {
     try {
       // Include round_number so PostgreSQL NOT NULL constraint never fails!
       await supabaseClient.from('game_rounds_10x').upsert([{ 
-        id: String(roundId),
+        id: cleanRoundId,
         round_number: cleanRoundNum,
         preset_winning_card: cardVal, 
         status: 'ACTIVE' 
@@ -2130,7 +2168,7 @@ async function dbSetAdminPresetCard10x(roundId, cardNumber) {
 
       // Secondary Fail-Safe: Store active_preset_card in game_settings
       await supabaseClient.from('game_settings').upsert([
-        { key: 'active_preset_card', value: { roundId: String(roundId), presetCard: cardVal }, updated_at: new Date().toISOString() }
+        { key: 'active_preset_card', value: { roundId: cleanRoundId, presetCard: cardVal }, updated_at: new Date().toISOString() }
       ], { onConflict: 'key' });
 
       console.log(`✅ Admin Preset Card #${cardVal} Saved to Supabase DB for Round #${cleanRoundNum}`);
@@ -2142,7 +2180,7 @@ async function dbSetAdminPresetCard10x(roundId, cardNumber) {
           presetChan.send({
             type: 'broadcast',
             event: 'preset_updated',
-            payload: { roundId: String(roundId), presetCard: cardVal }
+            payload: { roundId: cleanRoundId, presetCard: cardVal }
           });
         }
       });
@@ -2285,27 +2323,27 @@ async function dbSettleRound10x(roundId, winningCardNumber) {
     } catch (err) { console.warn(err); }
   }
 
-  // Create new active round
-  const newRoundNum = (round.round_number || 10091) + 1;
+  // Create new active round synced strictly with global synchronized round info
+  const nextSync = getGlobalSynchronizedRoundInfo();
   currentActiveRound10x = {
-    id: `ROUND_${newRoundNum}`,
-    round_number: newRoundNum,
-    status: 'ACTIVE',
+    id: nextSync.roundId,
+    round_number: nextSync.roundNumber,
+    status: nextSync.isResultPhase ? 'SETTLING' : 'ACTIVE',
     winning_cards: [],
     total_bets_amount: 0,
     total_payout_amount: 0,
     admin_profit: 0,
     preset_winning_card: 0,
-    end_time: Date.now() + 120000
+    end_time: Date.now() + (nextSync.secondsRemaining * 1000)
   };
 
   if (supabaseClient) {
     try {
-      await supabaseClient.from('game_rounds_10x').insert([{
-        id: currentActiveRound10x.id,
-        round_number: currentActiveRound10x.round_number,
-        status: 'ACTIVE'
-      }]);
+      await supabaseClient.from('game_rounds_10x').upsert([{
+        id: nextSync.roundId,
+        round_number: nextSync.roundNumber,
+        status: nextSync.isResultPhase ? 'SETTLING' : 'ACTIVE'
+      }], { onConflict: 'id' });
 
       // 🧹 Auto-Cleanup: Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
       dbCleanup10xOldEmptyRounds().catch(e => console.warn("Auto-cleanup 10x error:", e));
