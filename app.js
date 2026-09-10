@@ -924,71 +924,9 @@ async function openDepositScreen() {
   }
 
   await renderFrontendDepositMethods();
-  updateDepositBonusCalc();
   switchScreen('deposit');
 }
 
-async function renderFrontendDepositMethods() {
-  const gridContainer = document.getElementById('deposit-methods-grid');
-  if (!gridContainer) return;
-
-  let allMethods = [];
-  try {
-    allMethods = await dbGetPaymentMethods();
-  } catch (e) {
-    console.warn("Payment Methods Fetch Warning:", e);
-  }
-
-  if (!allMethods || !Array.isArray(allMethods) || allMethods.length === 0) {
-    if (typeof memoryPaymentMethods !== 'undefined') {
-      allMethods = memoryPaymentMethods;
-    }
-  }
-
-  const activeMethods = (allMethods || []).filter(m => m.status === 'ON');
-
-  currentState.activePaymentMethods = activeMethods;
-
-  if (!activeMethods || activeMethods.length === 0) {
-    gridContainer.innerHTML = `<div style="grid-column: span 3; text-align: center; color: var(--color-text-muted); padding: 14px; font-size: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">No active deposit methods available. (Admin has turned all methods OFF)</div>`;
-    currentState.selectedMethodObj = null;
-    return;
-  }
-
-  // Set default selected method if not set
-  if (!currentState.selectedMethodObj || !activeMethods.some(m => m.id === currentState.selectedMethodObj.id)) {
-    currentState.selectedMethodObj = activeMethods[0];
-  }
-
-  gridContainer.innerHTML = activeMethods.map(pm => {
-    const isSelected = currentState.selectedMethodObj && currentState.selectedMethodObj.id === pm.id;
-
-    let colorStyle = '#ffffff';
-    const nameLower = (pm.name || '').toLowerCase();
-    if (nameLower.includes('upi')) colorStyle = '#34d399';
-    if (nameLower.includes('phonepe') || nameLower.includes('phonepay')) colorStyle = '#a855f7';
-    if (nameLower.includes('paytm')) colorStyle = '#38bdf8';
-    if (nameLower.includes('icash')) colorStyle = '#60a5fa';
-
-    const upiSubtitle = pm.upi_id ? (pm.upi_id.split('@')[0] || pm.name) : pm.name;
-
-    return `
-      <div class="dep-method-card ${isSelected ? 'active' : ''}" onclick="selectDepositMethodById('${pm.id}')">
-        <div class="check-icon"><i class="fa-solid fa-check"></i></div>
-        <div class="method-icon-text" style="color: ${colorStyle}; font-weight: 800; font-size: 13px;">${pm.name}</div>
-        <div class="method-subtitle" style="font-size: 10px; color: #94a3b8;">${upiSubtitle}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function selectDepositMethodById(methodId) {
-  const methodObj = currentState.activePaymentMethods.find(m => m.id === methodId);
-  if (!methodObj) return;
-
-  currentState.selectedMethodObj = methodObj;
-  renderFrontendDepositMethods();
-}
 
 function selectAmountPreset(btnEl, amount) {
   const input = document.getElementById('deposit-amount-input');
@@ -3831,10 +3769,23 @@ async function renderFrontendDepositMethods() {
   const container = document.getElementById('deposit-methods-grid');
   if (!container) return;
 
-  const methods = await dbGetPaymentMethods();
-  
+  let methods = [];
+  try {
+    methods = await dbGetPaymentMethods();
+  } catch (e) {
+    console.warn("Payment Methods Fetch Warning:", e);
+  }
+
+  if (!methods || !Array.isArray(methods) || methods.length === 0) {
+    if (typeof memoryPaymentMethods !== 'undefined') {
+      methods = memoryPaymentMethods;
+    }
+  }
+
   // Filter active methods that have not reached max_limit
   const activeMethods = (methods || []).filter(m => m.status === 'ON' && (parseFloat(m.current_total || 0) < parseFloat(m.max_limit || 60000)));
+
+  currentState.activePaymentMethods = activeMethods;
 
   if (!activeMethods || activeMethods.length === 0) {
     container.innerHTML = `
@@ -3845,6 +3796,7 @@ async function renderFrontendDepositMethods() {
       </div>
     `;
     selectedDepositMethodId = null;
+    currentState.selectedMethodObj = null;
     return;
   }
 
@@ -3852,6 +3804,8 @@ async function renderFrontendDepositMethods() {
   if (!selectedDepositMethodId || !activeMethods.some(m => m.id === selectedDepositMethodId)) {
     selectedDepositMethodId = activeMethods[0].id;
   }
+
+  currentState.selectedMethodObj = activeMethods.find(m => m.id === selectedDepositMethodId) || activeMethods[0];
 
   container.innerHTML = activeMethods.map(pm => {
     const isSelected = pm.id === selectedDepositMethodId;
@@ -3869,18 +3823,10 @@ async function renderFrontendDepositMethods() {
 
 function selectDepositMethodById(methodId) {
   selectedDepositMethodId = methodId;
-  renderFrontendDepositMethods();
-}
-
-function selectAmountPreset(btnEl, amount) {
-  const input = document.getElementById('deposit-amount-input');
-  if (input) input.value = amount;
-
-  const parent = btnEl?.parentElement;
-  if (parent) {
-    parent.querySelectorAll('.amount-preset-card').forEach(b => b.classList.remove('active'));
-    if (btnEl && btnEl.classList) btnEl.classList.add('active');
+  if (currentState.activePaymentMethods) {
+    currentState.selectedMethodObj = currentState.activePaymentMethods.find(m => m.id === methodId) || null;
   }
+  renderFrontendDepositMethods();
 }
 
 async function proceedToCashier() {
