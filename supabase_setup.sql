@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS public.user_bets_10x (
 
 ALTER TABLE public.user_bets_10x ADD COLUMN IF NOT EXISTS bet_type TEXT DEFAULT 'exact_10x';
 ALTER TABLE public.user_bets_10x ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '';
+ALTER TABLE public.user_bets_10x ADD COLUMN IF NOT EXISTS winning_card INT DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS user_bets_10x_round_id_idx ON public.user_bets_10x(round_id);
 CREATE INDEX IF NOT EXISTS user_bets_10x_user_id_idx ON public.user_bets_10x(user_id);

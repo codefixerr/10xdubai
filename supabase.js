@@ -1961,22 +1961,50 @@ async function autoSettlePendingBets() {
 
   const animalsConfig = typeof dbGetAnimalsConfig === 'function' ? await dbGetAnimalsConfig() : (typeof memoryAnimalsConfig !== 'undefined' ? memoryAnimalsConfig : []);
 
+  // Pre-fetch settled rounds from DB to get exact recorded winning cards
+  const roundIdsToFetch = Array.from(new Set(pastPendingBets.map(b => String(b.round_id || '')))).filter(Boolean);
+  const dbRoundsMap = new Map();
+  if (supabaseClient && roundIdsToFetch.length > 0) {
+    try {
+      const { data: rData } = await supabaseClient.from('game_rounds_10x').select('id, preset_winning_card, winning_cards').in('id', roundIdsToFetch);
+      if (rData && rData.length > 0) {
+        rData.forEach(r => {
+          let winC = 0;
+          if (r.preset_winning_card > 0) winC = parseInt(r.preset_winning_card);
+          else if (Array.isArray(r.winning_cards) && r.winning_cards.length > 0 && r.winning_cards[0] > 0) winC = parseInt(r.winning_cards[0]);
+          if (winC > 0) dbRoundsMap.set(r.id, winC);
+        });
+      }
+    } catch(e) {}
+  }
+
   for (const bet of pastPendingBets) {
     const bRoundNum = parseInt(String(bet.round_id || '').replace(/[^0-9]/g, '')) || 0;
+    const cleanRoundId = bet.round_id || `ROUND_${bRoundNum}`;
+
     let winningCardNumber = parseInt(bet.winning_card || bet.winning_card_number || '0');
+    if (!winningCardNumber && dbRoundsMap.has(cleanRoundId)) {
+      winningCardNumber = dbRoundsMap.get(cleanRoundId);
+    }
     if (!winningCardNumber) {
       try {
-        winningCardNumber = parseInt(sessionStorage.getItem('amiriwin_win_card_' + bet.round_id) || sessionStorage.getItem('amiriwin_win_card_' + bRoundNum) || '0');
+        winningCardNumber = parseInt(sessionStorage.getItem('amiriwin_win_card_' + cleanRoundId) || sessionStorage.getItem('amiriwin_win_card_' + bRoundNum) || '0');
       } catch(e) {}
     }
     if (!winningCardNumber && typeof state10x !== 'undefined' && state10x.lastWinningCardMap) {
-      winningCardNumber = parseInt(state10x.lastWinningCardMap[bet.round_id] || state10x.lastWinningCardMap[bRoundNum] || '0');
+      winningCardNumber = parseInt(state10x.lastWinningCardMap[cleanRoundId] || state10x.lastWinningCardMap[bRoundNum] || '0');
     }
     if (!winningCardNumber) {
-      winningCardNumber = (bRoundNum % 10) + 1;
+      // Deterministic PRNG formula
+      let t = (bRoundNum + 0x6D2B79F5) | 0;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      winningCardNumber = 1 + (Math.floor(rnd * 10) % 10);
     }
 
     const winningAnimal = animalsConfig.find(a => a.id === winningCardNumber) || { category: winningCardNumber <= 5 ? 'wild' : 'pet' };
+    const winCatLower = String(winningAnimal.category || (winningCardNumber <= 5 ? 'wild' : 'pet')).toLowerCase();
 
     let isWon = false;
     let payout = 0;
@@ -1985,7 +2013,11 @@ async function autoSettlePendingBets() {
     const betAmt = parseFloat(bet.bet_amount || bet.amount || 0);
 
     if (betType === 'category_2x') {
-      if (bet.category === winningAnimal.category) {
+      const bCat = String(bet.category || '').toLowerCase().trim();
+      const isCat1Bet = bCat === 'wild' || bCat === 'cat1' || bCat === 'category 1' || bCat === 'bowler' || bCat === '1';
+      const isCat2Bet = bCat === 'pet' || bCat === 'cat2' || bCat === 'category 2' || bCat === 'batsman' || bCat === '2';
+      const isCatMatch = (winCatLower === 'wild' || winningCardNumber <= 5) ? isCat1Bet : isCat2Bet;
+      if (isCatMatch) {
         isWon = true;
         payout = betAmt * 2;
       }
@@ -2012,14 +2044,27 @@ async function autoSettlePendingBets() {
 
     if (supabaseClient) {
       try {
-        await supabaseClient.from('user_bets_10x').update({
+        const updatePayload = {
           status: isWon ? 'WON' : 'LOST',
-          payout_amount: payout,
-          winning_card: winningCardNumber
-        }).eq('id', bet.id);
+          payout_amount: payout
+        };
+        if (winningCardNumber > 0) updatePayload.winning_card = winningCardNumber;
+
+        const { error } = await supabaseClient.from('user_bets_10x').update(updatePayload).eq('id', bet.id);
+        if (error) {
+          // Retry without winning_card column if column not present in schema
+          await supabaseClient.from('user_bets_10x').update({
+            status: isWon ? 'WON' : 'LOST',
+            payout_amount: payout
+          }).eq('id', bet.id);
+        }
       } catch(e) {}
     }
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.autoSettlePendingBets = autoSettlePendingBets;
 }
 
 async function dbGetUserBets10x(userId, phone) {

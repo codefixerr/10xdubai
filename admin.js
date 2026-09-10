@@ -1763,156 +1763,7 @@ async function saveAdminAnimalsConfig(event) {
   await loadAdminAnimalsConfigForm(true);
 }
 
-// GLOBAL ALL-USER BET HISTORY MONITOR WITH SEARCH & DATE FILTERS
-let allAdminBetsCache = [];
-
-async function renderAdminAllBetsHistory() {
-  const tbody = document.getElementById('admin-global-bets-table-body');
-  if (!tbody) return;
-
-  let bets = [];
-  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient.from('user_bets_10x').select('*').order('created_at', { ascending: false }).limit(200);
-      if (!error && data) bets = data;
-    } catch (e) { console.warn(e); }
-  }
-
-  if (!bets || bets.length === 0) {
-    if (typeof memoryUserBets10x !== 'undefined') {
-      bets = memoryUserBets10x;
-    }
-  }
-
-  allAdminBetsCache = bets;
-  await filterAdminBetsTable();
-}
-
-function handleAdminDateFilterChange() {
-  const val = document.getElementById('admin-bets-date-filter')?.value;
-  const customBox = document.getElementById('admin-custom-date-box');
-  if (customBox) {
-    customBox.style.display = val === 'CUSTOM' ? 'flex' : 'none';
-  }
-  filterAdminBetsTable();
-}
-
-async function filterAdminBetsTable() {
-  const tbody = document.getElementById('admin-global-bets-table-body');
-  if (!tbody) return;
-
-  const searchInput = (document.getElementById('admin-bets-search-input')?.value || '').toLowerCase().trim();
-  const dateFilter = document.getElementById('admin-bets-date-filter')?.value || 'ALL';
-
-  const catNames = typeof dbGetCategoryNames === 'function' ? await dbGetCategoryNames() : (typeof getCategoryNamesSync === 'function' ? getCategoryNamesSync() : { cat1: 'Bowler', cat2: 'Batsman' });
-  const animalsConfig = typeof dbGetAnimalsConfig === 'function' ? await dbGetAnimalsConfig() : [];
-
-  const nowMs = Date.now();
-
-  let filtered = allAdminBetsCache.filter(b => {
-    // Search matching
-    const phone = (b.phone || '').toLowerCase();
-    const userId = (b.user_id || '').toLowerCase();
-    const roundId = (b.round_id || '').toLowerCase();
-    const betType = (b.bet_type || '').toLowerCase();
-    const category = (b.category || '').toLowerCase();
-    const cardNum = String(b.card_number || '');
-
-    const matchesSearch = !searchInput || 
-      phone.includes(searchInput) || 
-      userId.includes(searchInput) || 
-      roundId.includes(searchInput) || 
-      betType.includes(searchInput) ||
-      category.includes(searchInput) ||
-      cardNum.includes(searchInput);
-
-    if (!matchesSearch) return false;
-
-    // Date filtering
-    if (dateFilter === 'ALL') return true;
-
-    const bTime = b.created_at ? new Date(b.created_at).getTime() : nowMs;
-
-    if (dateFilter === '24H') {
-      return (nowMs - bTime) <= (24 * 60 * 60 * 1000);
-    }
-    if (dateFilter === '7D') {
-      return (nowMs - bTime) <= (7 * 24 * 60 * 60 * 1000);
-    }
-    if (dateFilter === '30D') {
-      return (nowMs - bTime) <= (30 * 24 * 60 * 60 * 1000);
-    }
-    if (dateFilter === '60D') {
-      return (nowMs - bTime) <= (60 * 24 * 60 * 60 * 1000);
-    }
-    if (dateFilter === '90D') {
-      return (nowMs - bTime) <= (90 * 24 * 60 * 60 * 1000);
-    }
-    if (dateFilter === 'CUSTOM') {
-      const fromVal = document.getElementById('admin-bets-date-from')?.value;
-      const toVal = document.getElementById('admin-bets-date-to')?.value;
-
-      if (fromVal) {
-        const fromTime = new Date(`${fromVal}T00:00:00`).getTime();
-        if (bTime < fromTime) return false;
-      }
-      if (toVal) {
-        const toTime = new Date(`${toVal}T23:59:59`).getTime();
-        if (bTime > toTime) return false;
-      }
-      return true;
-    }
-
-    return true;
-  });
-
-  if (!filtered || filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: 20px;">No bets found matching filter criteria!</td></tr>`;
-    return;
-  }
-
-  const rowsHtml = filtered.map(b => {
-    const is2X = b.bet_type === 'category_2x';
-    const modeBadge = is2X 
-      ? `<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 11px;">2X Category</span>`
-      : `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 11px;">10X Exact</span>`;
-
-    let targetName = '';
-    if (is2X) {
-      targetName = b.category === 'wild' ? catNames.cat1 : catNames.cat2;
-    } else {
-      const anim = animalsConfig.find(a => a.id === b.card_number);
-      targetName = anim ? anim.name : `Card #${b.card_number}`;
-    }
-
-    let statusBadge = '';
-    const statusUpper = (b.status || 'PENDING').toUpperCase();
-    if (statusUpper === 'WON') {
-      statusBadge = `<span style="color: #34d399; font-weight: 900;">WON (+₹${(b.payout_amount || 0).toFixed(2)})</span>`;
-    } else if (statusUpper === 'LOST') {
-      statusBadge = `<span style="color: #f87171; font-weight: 800;">LOST (-₹${parseFloat(b.bet_amount).toFixed(2)})</span>`;
-    } else {
-      statusBadge = `<span style="color: #38bdf8; font-weight: 800;">PENDING</span>`;
-    }
-
-    const dateDisplay = b.created_at ? new Date(b.created_at).toLocaleString() : (b.date || 'Recent');
-
-    return `
-      <tr>
-        <td style="font-size: 11px; color: #94a3b8;">${dateDisplay}</td>
-        <td style="font-weight: 800; color: white;">${b.round_id || 'ROUND_10091'}</td>
-        <td style="font-weight: 700; color: #cbd5e1;">${b.user_id || 'USR_000'} (+91 ${b.phone || '000'})</td>
-        <td>${modeBadge}</td>
-        <td style="font-weight: 800; color: #fbbf24;">${targetName}</td>
-        <td style="font-weight: 700; color: #ffe066;">₹${parseFloat(b.bet_amount).toFixed(2)}</td>
-        <td style="font-weight: 700; color: ${b.payout_amount > 0 ? '#34d399' : '#94a3b8'};">₹${(b.payout_amount || 0).toFixed(2)}</td>
-        <td>${statusBadge}</td>
-      </tr>
-    `;
-  }).join('');
-
-  tbody.innerHTML = rowsHtml;
-}
+// BET HISTORY FUNCTIONS DELEGATED TO UNIFIED MULTI-GAME MONITOR BELOW
 
 // ADMIN WITHDRAWAL REQUESTS MANAGER
 async function loadAdminWithdrawals() {
@@ -2125,19 +1976,36 @@ async function renderAdminAllBetsHistory() {
   const tbody = document.getElementById('admin-global-bets-table-body');
   if (!tbody) return;
 
+  // 1. Auto-settle any pending rounds first
+  if (typeof autoSettlePendingBets === 'function') {
+    try { await autoSettlePendingBets(); } catch(e) {}
+  } else if (typeof window.autoSettlePendingBets === 'function') {
+    try { await window.autoSettlePendingBets(); } catch(e) {}
+  }
+
   let bets10x = [], betsCoinflip = [], betsDT = [];
+  let rounds10xMap = new Map();
 
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     try {
-      const [res10x, resCoinflip, resDT] = await Promise.all([
-        supabaseClient.from('user_bets_10x').select('*').order('created_at', { ascending: false }).limit(200),
-        supabaseClient.from('user_bets_coinflip').select('*').order('created_at', { ascending: false }).limit(200),
-        supabaseClient.from('user_bets_dragontiger').select('*').order('created_at', { ascending: false }).limit(200)
+      const [res10x, resCoinflip, resDT, resRounds] = await Promise.all([
+        supabaseClient.from('user_bets_10x').select('*').order('created_at', { ascending: false }).limit(300),
+        supabaseClient.from('user_bets_coinflip').select('*').order('created_at', { ascending: false }).limit(300),
+        supabaseClient.from('user_bets_dragontiger').select('*').order('created_at', { ascending: false }).limit(300),
+        supabaseClient.from('game_rounds_10x').select('id, preset_winning_card, winning_cards').order('created_at', { ascending: false }).limit(100)
       ]);
 
       if (!res10x.error && res10x.data) bets10x = res10x.data;
       if (!resCoinflip.error && resCoinflip.data) betsCoinflip = resCoinflip.data;
       if (!resDT.error && resDT.data) betsDT = resDT.data;
+      if (!resRounds.error && resRounds.data) {
+        resRounds.data.forEach(r => {
+          let winC = 0;
+          if (r.preset_winning_card > 0) winC = parseInt(r.preset_winning_card);
+          else if (Array.isArray(r.winning_cards) && r.winning_cards.length > 0 && r.winning_cards[0] > 0) winC = parseInt(r.winning_cards[0]);
+          if (winC > 0) rounds10xMap.set(r.id, winC);
+        });
+      }
     } catch (e) { console.warn("Fetch bets history error:", e); }
   }
 
@@ -2145,9 +2013,91 @@ async function renderAdminAllBetsHistory() {
   if (betsCoinflip.length === 0 && typeof memoryUserBetsCoinFlip !== 'undefined') betsCoinflip = memoryUserBetsCoinFlip;
   if (betsDT.length === 0 && typeof memoryDragonTigerBets !== 'undefined') betsDT = memoryDragonTigerBets;
 
-  bets10x.forEach(b => { b._game = '10x'; b._gameName = '10X Wheel'; });
-  betsCoinflip.forEach(b => { b._game = 'coinflip'; b._gameName = 'Flip Coin'; });
-  betsDT.forEach(b => { b._game = 'dragontiger'; b._gameName = 'Dragon vs Tiger'; });
+  const currentRoundSync = typeof getGlobalSynchronizedRoundInfo === 'function' ? getGlobalSynchronizedRoundInfo() : { roundNumber: 10000 };
+  const currentRoundNum = currentRoundSync.roundNumber;
+
+  // Resolve outcome for all 10X bets
+  bets10x.forEach(b => {
+    b._game = '10x';
+    b._gameName = '10X Wheel';
+
+    const bRoundNum = parseInt(String(b.round_id || '').replace(/[^0-9]/g, '')) || 0;
+    const cleanRoundId = b.round_id || `ROUND_${bRoundNum}`;
+    const statusUpper = String(b.status || 'PENDING').toUpperCase();
+
+    // If round has ended and bet is marked PENDING, resolve outcome immediately
+    if ((statusUpper === 'PENDING' || !b.status) && bRoundNum > 0 && bRoundNum < currentRoundNum) {
+      let winningCard = parseInt(b.winning_card || 0);
+      if (!winningCard && rounds10xMap.has(cleanRoundId)) {
+        winningCard = rounds10xMap.get(cleanRoundId);
+      }
+      if (!winningCard) {
+        // Deterministic Mulberry32 PRNG seed for this round
+        let t = (bRoundNum + 0x6D2B79F5) | 0;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        winningCard = 1 + (Math.floor(rnd * 10) % 10);
+      }
+
+      const betAmt = parseFloat(b.bet_amount || 0);
+      const is2X = b.bet_type === 'category_2x';
+      let isWon = false;
+      let payout = 0;
+
+      if (is2X) {
+        const bCat = String(b.category || '').toLowerCase().trim();
+        const winCat = winningCard <= 5 ? 'wild' : 'pet';
+        const isCat1Bet = bCat === 'wild' || bCat === 'cat1' || bCat === 'category 1' || bCat === 'bowler' || bCat === '1';
+        const isCat2Bet = bCat === 'pet' || bCat === 'cat2' || bCat === 'category 2' || bCat === 'batsman' || bCat === '2';
+        const isCategoryWon = (winCat === 'wild') ? isCat1Bet : isCat2Bet;
+        if (isCategoryWon) {
+          isWon = true;
+          payout = betAmt * 2;
+        }
+      } else {
+        const bCard = parseInt(b.card_number || 0);
+        if (bCard === winningCard) {
+          isWon = true;
+          payout = betAmt * 10;
+        }
+      }
+
+      b.status = isWon ? 'WON' : 'LOST';
+      b.payout_amount = payout;
+      b.winning_card = winningCard;
+
+      // Asynchronously update Supabase DB
+      if (typeof supabaseClient !== 'undefined' && supabaseClient && b.id) {
+        supabaseClient.from('user_bets_10x').update({
+          status: b.status,
+          payout_amount: b.payout_amount,
+          winning_card: winningCard
+        }).eq('id', b.id).then(() => {}).catch(() => {
+          supabaseClient.from('user_bets_10x').update({
+            status: b.status,
+            payout_amount: b.payout_amount
+          }).eq('id', b.id).catch(() => {});
+        });
+      }
+    }
+  });
+
+  betsCoinflip.forEach(b => {
+    b._game = 'coinflip';
+    b._gameName = 'Flip Coin';
+    if (!b.status) {
+      b.status = (parseFloat(b.payout_amount || 0) > 0 || b.is_won) ? 'WON' : 'LOST';
+    }
+  });
+
+  betsDT.forEach(b => {
+    b._game = 'dragontiger';
+    b._gameName = 'Dragon vs Tiger';
+    if (!b.status) {
+      b.status = (parseFloat(b.payout_amount || 0) > 0 || b.is_won) ? 'WON' : 'LOST';
+    }
+  });
 
   allAdminBetsCache = [...bets10x, ...betsCoinflip, ...betsDT].sort((a, b) => {
     const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -2275,12 +2225,14 @@ async function filterAdminBetsTable() {
 
     let statusBadge = '';
     const statusUpper = (b.status || 'PENDING').toUpperCase();
+    const payoutAmt = parseFloat(b.payout_amount || 0);
+
     if (statusUpper === 'WON') {
-      statusBadge = `<span style="color: #34d399; font-weight: 900;">WON (+₹${(b.payout_amount || 0).toFixed(2)})</span>`;
+      statusBadge = `<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 11px; border: 1px solid rgba(52, 211, 153, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check"></i> WON</span>`;
     } else if (statusUpper === 'LOST') {
-      statusBadge = `<span style="color: #f87171; font-weight: 800;">LOST (-₹${parseFloat(b.bet_amount || 0).toFixed(2)})</span>`;
+      statusBadge = `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; border: 1px solid rgba(248, 113, 113, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-xmark"></i> LOST</span>`;
     } else {
-      statusBadge = `<span style="color: #38bdf8; font-weight: 800;">PENDING</span>`;
+      statusBadge = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; border: 1px solid rgba(56, 189, 248, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-clock"></i> PENDING</span>`;
     }
 
     const dateDisplay = b.created_at ? new Date(b.created_at).toLocaleString() : 'Recent';
@@ -2294,7 +2246,9 @@ async function filterAdminBetsTable() {
         <td>${modeBadge}</td>
         <td style="font-weight: 800; color: #fbbf24;">${targetName}</td>
         <td style="font-weight: 700; color: #ffe066;">₹${parseFloat(b.bet_amount || 0).toFixed(2)}</td>
-        <td style="font-weight: 700; color: ${b.payout_amount > 0 ? '#34d399' : '#94a3b8'};">₹${(b.payout_amount || 0).toFixed(2)}</td>
+        <td style="font-weight: 700; color: ${statusUpper === 'WON' && payoutAmt > 0 ? '#34d399' : '#94a3b8'};">
+          ${statusUpper === 'WON' && payoutAmt > 0 ? `+₹${payoutAmt.toFixed(2)}` : '₹0.00'}
+        </td>
         <td>${statusBadge}</td>
       </tr>
     `;
