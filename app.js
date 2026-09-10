@@ -2496,99 +2496,100 @@ function change10xBetHistoryPage(delta) {
   render10xMyBetHistory();
 }
 
-// DYNAMIC RANDOM USER WIN + 30% ADMIN HOUSE PROFIT PROTECTION ALGORITHM
+// 100% GLOBALLY SYNCHRONIZED WINNING CARD CALCULATOR (IDENTICAL FOR ALL USERS)
 async function calculateSmartWinningCard(round, bets) {
+  const roundNumClean = parseInt(String(round ? (round.round_number || round.id || '10000') : '10000').replace(/[^0-9]/g, '')) || 10000;
+  const cleanRoundId = round ? (round.id || `ROUND_${roundNumClean}`) : `ROUND_${roundNumClean}`;
+
   // 0. Lock Check: If winning card was ALREADY determined/preset for this round, return it 100% consistently!
   if (!state10x.lastWinningCardMap) state10x.lastWinningCardMap = {};
   if (round && (round.id || round.round_number)) {
-    const existing = state10x.lastWinningCardMap[round.id] || 
-                     state10x.lastWinningCardMap[String(round.round_number)] ||
-                     parseInt(sessionStorage.getItem('amiriwin_win_card_' + round.id) || sessionStorage.getItem('amiriwin_win_card_' + round.round_number) || '0');
+    const existing = state10x.lastWinningCardMap[cleanRoundId] || 
+                     state10x.lastWinningCardMap[String(roundNumClean)] ||
+                     parseInt(sessionStorage.getItem('amiriwin_win_card_' + cleanRoundId) || sessionStorage.getItem('amiriwin_win_card_' + roundNumClean) || '0');
     if (existing > 0) {
       return existing;
     }
   }
 
-  // 1. Manual Admin Preset Override (if set in Admin Panel)
-  const storedPresetRoundId = localStorage.getItem('amiriwin_active_preset_round_id');
-  const storedPresetCard = parseInt(localStorage.getItem('amiriwin_active_preset_card') || '0');
-  const storedRoundSpecificCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + (round ? round.id : '')) || '0');
-  
+  // 1. Check Live Database for Manual Admin Preset Winner (Direct Query from DB)
   let presetCard = (round && round.preset_winning_card > 0) ? round.preset_winning_card : 0;
-  if (!presetCard && storedRoundSpecificCard > 0) presetCard = storedRoundSpecificCard;
-  if (!presetCard && storedPresetCard > 0 && (storedPresetRoundId === round?.id || !storedPresetRoundId)) {
-    presetCard = storedPresetCard;
+  
+  if (!presetCard && typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      // Check 1: game_rounds_10x table
+      const { data: rData } = await supabaseClient
+        .from('game_rounds_10x')
+        .select('preset_winning_card')
+        .eq('id', cleanRoundId)
+        .maybeSingle();
+      if (rData && rData.preset_winning_card > 0) {
+        presetCard = parseInt(rData.preset_winning_card);
+      }
+
+      // Check 2: game_settings table (active_preset_card)
+      if (!presetCard) {
+        const { data: gData } = await supabaseClient
+          .from('game_settings')
+          .select('value')
+          .eq('key', 'active_preset_card')
+          .maybeSingle();
+        if (gData && gData.value && gData.value.presetCard > 0) {
+          const gRound = String(gData.value.roundId || '');
+          if (!gRound || gRound === cleanRoundId || gRound.includes(String(roundNumClean))) {
+            presetCard = parseInt(gData.value.presetCard);
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("Error fetching live preset from Supabase DB:", e);
+    }
+  }
+
+  // Check 3: Local storage fallbacks
+  if (!presetCard) {
+    const storedPresetRoundId = localStorage.getItem('amiriwin_active_preset_round_id');
+    const storedPresetCard = parseInt(localStorage.getItem('amiriwin_active_preset_card') || '0');
+    const storedRoundSpecificCard = parseInt(localStorage.getItem('amiriwin_preset_card_' + cleanRoundId) || '0');
+    
+    if (storedRoundSpecificCard > 0) {
+      presetCard = storedRoundSpecificCard;
+    } else if (storedPresetCard > 0 && (!storedPresetRoundId || storedPresetRoundId === cleanRoundId || storedPresetRoundId.includes(String(roundNumClean)))) {
+      presetCard = storedPresetCard;
+    }
   }
 
   if (presetCard > 0) {
-    console.log(`👑 ADMIN MANUAL OVERRIDE WINNER for ${round ? round.id : 'current round'}: Card #${presetCard}`);
-    if (round && (round.id || round.round_number)) {
-      state10x.lastWinningCardMap[round.id] = presetCard;
-      state10x.lastWinningCardMap[String(round.round_number)] = presetCard;
-      try {
-        sessionStorage.setItem('amiriwin_win_card_' + round.id, String(presetCard));
-        sessionStorage.setItem('amiriwin_win_card_' + round.round_number, String(presetCard));
-      } catch(e) {}
-    }
-
-    // IMMEDIATELY CLEAR PRESET SO IT NEVER LEAKS TO FUTURE ROUNDS!
+    console.log(`👑 ADMIN MANUAL OVERRIDE WINNER for Round #${roundNumClean}: Card #${presetCard}`);
+    state10x.lastWinningCardMap[cleanRoundId] = presetCard;
+    state10x.lastWinningCardMap[String(roundNumClean)] = presetCard;
     try {
-      localStorage.removeItem('amiriwin_active_preset_card');
-      localStorage.removeItem('amiriwin_active_preset_round_id');
-      if (round && round.id) localStorage.removeItem('amiriwin_preset_card_' + round.id);
-      if (typeof currentActiveRound10x !== 'undefined' && currentActiveRound10x) currentActiveRound10x.preset_winning_card = 0;
-      if (round) round.preset_winning_card = 0;
+      sessionStorage.setItem('amiriwin_win_card_' + cleanRoundId, String(presetCard));
+      sessionStorage.setItem('amiriwin_win_card_' + roundNumClean, String(presetCard));
     } catch(e) {}
-
     return presetCard;
   }
 
-  // 2. Auto Smart Profit Protection Engine (30% to 100% Admin House Profit Guarantee)
-  const roundNumClean = parseInt(String(round ? (round.round_number || round.id || '10000') : '10000').replace(/[^0-9]/g, '')) || 10000;
+  // 2. Pure 100% Globally Synchronized Deterministic Winner derived strictly from Round Number
+  // Mulberry32 PRNG Algorithm: Produces the EXACT identical winning card on every client device across the world!
+  let t = (roundNumClean + 0x6D2B79F5) | 0;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 
-  const getDeterministicRnd = (offset = 0) => {
-    let t = (roundNumClean + offset + 0x6D2B79F5) | 0;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const winningCard = 1 + (Math.floor(rnd * 10) % 10);
+  console.log(`🎲 100% Globally Synchronized Winning Card for Round #${roundNumClean}: Card #${winningCard}`);
 
-  const cardStats = [];
-  const safeBets = Array.isArray(bets) ? bets : [];
-  for (let i = 1; i <= 10; i++) {
-    const cardBets = safeBets.filter(b => parseInt(b.card_number || b.cardNumber || 0) === i);
-    const totalBetAmt = cardBets.reduce((sum, b) => sum + (parseFloat(b.bet_amount || b.amount || 0)), 0);
-    const userCount = cardBets.length;
-    const payoutIfWins = totalBetAmt * 10;
-    cardStats.push({ cardId: i, totalBetAmt, userCount, payoutIfWins });
-  }
+  state10x.lastWinningCardMap[cleanRoundId] = winningCard;
+  state10x.lastWinningCardMap[String(roundNumClean)] = winningCard;
+  try {
+    sessionStorage.setItem('amiriwin_win_card_' + cleanRoundId, String(winningCard));
+    sessionStorage.setItem('amiriwin_win_card_' + roundNumClean, String(winningCard));
+  } catch(e) {}
 
-  const totalCollectedBets = cardStats.reduce((sum, c) => sum + c.totalBetAmt, 0);
-  const maxSafePayout = totalCollectedBets * 0.70; // 30%+ House Profit Floor Guarantee
-
-  // Prioritize unselected (0 user bets) cards for 100% Admin Profit when bets exist
-  const unselectedCards = cardStats.filter(c => c.userCount === 0);
-  if (unselectedCards.length > 0 && totalCollectedBets > 0) {
-    const rndIdx = Math.floor(getDeterministicRnd(1) * unselectedCards.length);
-    const winningCard = unselectedCards[rndIdx].cardId;
-    console.log(`🛡️ House Profit Shield (100% Admin Profit): Card #${winningCard} selected for Round #${roundNumClean}`);
-    return winningCard;
-  }
-
-  // Safe User Cards (Payout <= 70% of Collected Bets -> 30%+ Admin Profit Floor)
-  const safeUserCards = cardStats.filter(c => c.userCount > 0 && c.payoutIfWins <= maxSafePayout);
-  if (safeUserCards.length > 0 && totalCollectedBets > 0) {
-    const rndIdx = Math.floor(getDeterministicRnd(2) * safeUserCards.length);
-    const winningCard = safeUserCards[rndIdx].cardId;
-    console.log(`🛡️ Safe User Win (30%+ Admin Profit Floor): Card #${winningCard} selected for Round #${roundNumClean}`);
-    return winningCard;
-  }
-
-  // Pure 100% Deterministic Winner derived solely from Round Number
-  const winningCard = 1 + Math.floor(getDeterministicRnd(3) * 10);
-  console.log(`🎲 Global Synchronized Winning Card for Round #${roundNumClean}: Card #${winningCard}`);
   return winningCard;
 }
+
 
 function is2xCategoryMatch(betCategory, betCardNumber, winningCardNumber, winningCategory) {
   const winCat = String(winningCategory || (winningCardNumber <= 5 ? 'wild' : 'pet')).toLowerCase();
