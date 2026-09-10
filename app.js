@@ -2080,7 +2080,7 @@ function start10xRoundTimer() {
     dbGetTimerSettings().catch(e => console.warn(e));
   }
 
-  const issueEl = document.getElementById('game-10x-issue-number');
+  const issueEl = document.getElementById('game-10x-round-id');
   const timerEl = document.getElementById('game-10x-timer');
   const timerLabelEl = document.getElementById('game-10x-timer-label');
   const statusTag = document.getElementById('game-10x-status-tag');

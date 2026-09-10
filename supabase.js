@@ -1177,17 +1177,38 @@ async function dbUpdateTimerSettings(config) {
   return true;
 }
 
+// True Server Time Offset Synchronization
+let globalServerTimeOffsetMs = 0;
+async function syncServerTimeOffset() {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+    const serverDateStr = res.headers.get('date');
+    if (serverDateStr) {
+      const serverMs = new Date(serverDateStr).getTime();
+      if (!isNaN(serverMs) && serverMs > 0) {
+        globalServerTimeOffsetMs = serverMs - Date.now();
+      }
+    }
+  } catch(e) {}
+}
+
+if (typeof window !== 'undefined') {
+  syncServerTimeOffset();
+  setInterval(syncServerTimeOffset, 30000);
+}
+
 // Global Round Synchronizer
 function getGlobalSynchronizedRoundInfo() {
   if (!activeRoundTimerConfig) {
-    activeRoundTimerConfig = memoryTimerConfig || { betting_duration_sec: 120, result_duration_sec: 30 };
+    activeRoundTimerConfig = memoryTimerConfig || { betting_duration_sec: 240, result_duration_sec: 20, dragontiger_betting_duration_sec: 60 };
   }
 
-  let bettingSec = activeRoundTimerConfig.betting_duration_sec || 120;
-  let resultSec = activeRoundTimerConfig.result_duration_sec || 30;
+  let bettingSec = activeRoundTimerConfig.betting_duration_sec || 240;
+  let resultSec = activeRoundTimerConfig.result_duration_sec || 20;
   let cycleSec = bettingSec + resultSec;
 
-  const currentEpochSec = Math.floor(Date.now() / 1000);
+  const currentEpochSec = Math.floor((Date.now() + globalServerTimeOffsetMs) / 1000);
   let roundIndex = Math.floor(currentEpochSec / cycleSec);
 
   lastCalculatedRoundIndex = roundIndex;
