@@ -948,7 +948,7 @@ async function dbRejectDeposit(depositId) {
 }
 
 // --- DYNAMIC GAME TIMER CONFIGURATION (PERMANENT & UNIFORM SYNCHRONIZATION) ---
-const DEFAULT_GLOBAL_TIMER_CONFIG = { betting_duration_sec: 120, result_duration_sec: 30, dragontiger_betting_duration_sec: 15 };
+const DEFAULT_GLOBAL_TIMER_CONFIG = { betting_duration_sec: 240, result_duration_sec: 20, dragontiger_betting_duration_sec: 60 };
 let memoryTimerConfig = { ...DEFAULT_GLOBAL_TIMER_CONFIG };
 let memoryPendingTimerConfig = null;
 let activeRoundTimerConfig = { ...DEFAULT_GLOBAL_TIMER_CONFIG };
@@ -1062,6 +1062,25 @@ if (typeof window !== 'undefined') {
                 localStorage.setItem('amiriwin_active_preset_card', String(pCard));
               } catch(e) {}
               console.log(`👑 Realtime Preset Winner Received: Card #${pCard} for Round ${cleanPRound}`);
+            }
+          })
+        const roundSettledChan = supabaseClient.channel('amiriwin_10x_round_settled');
+        roundSettledChan
+          .on('broadcast', { event: 'round_settled' }, payload => {
+            if (payload && payload.payload && payload.payload.roundId && payload.payload.winningCard > 0) {
+              const rId = String(payload.payload.roundId);
+              const rNum = rId.replace(/[^0-9]/g, '');
+              const wCard = parseInt(payload.payload.winningCard);
+              if (typeof state10x !== 'undefined') {
+                if (!state10x.lastWinningCardMap) state10x.lastWinningCardMap = {};
+                state10x.lastWinningCardMap[rId] = wCard;
+                state10x.lastWinningCardMap[rNum] = wCard;
+              }
+              try {
+                sessionStorage.setItem('amiriwin_win_card_' + rId, String(wCard));
+                sessionStorage.setItem('amiriwin_win_card_' + rNum, String(wCard));
+              } catch(e) {}
+              console.log(`📡 Realtime Winner Broadcast Received: Round ${rId} -> Card #${wCard}`);
             }
           })
           .subscribe();
@@ -2344,6 +2363,18 @@ async function dbSettleRound10x(roundId, winningCardNumber) {
         round_number: nextSync.roundNumber,
         status: nextSync.isResultPhase ? 'SETTLING' : 'ACTIVE'
       }], { onConflict: 'id' });
+
+      // Broadcast settled round result to all active clients globally for 0ms lock
+      const roundSettledChan = supabaseClient.channel('amiriwin_10x_round_settled');
+      roundSettledChan.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          roundSettledChan.send({
+            type: 'broadcast',
+            event: 'round_settled',
+            payload: { roundId: String(roundId), winningCard: parseInt(winningCardNumber) }
+          });
+        }
+      });
 
       // 🧹 Auto-Cleanup: Keep latest 15 rounds for trend roadmap, delete older 0-bet empty rounds
       dbCleanup10xOldEmptyRounds().catch(e => console.warn("Auto-cleanup 10x error:", e));
