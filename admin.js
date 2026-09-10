@@ -507,6 +507,11 @@ async function renderAdminDeposits() {
             <span class="status-badge ${dep.status === 'Approved' ? 'status-active' : (dep.status === 'Rejected' ? 'status-suspended' : '')}" style="${dep.status === 'Pending' ? 'background: rgba(245,166,35,0.15); color: #f5a623;' : ''}">
               ${dep.status}
             </span>
+            ${dep.status === 'Rejected' && dep.reject_reason ? `
+              <div style="font-size: 10px; color: #f87171; margin-top: 4px; max-width: 140px; line-height: 1.2; word-break: break-word;">
+                <i class="fa-solid fa-circle-exclamation"></i> <b>Reason:</b> ${dep.reject_reason}
+              </div>
+            ` : ''}
           </td>
           <td style="text-align: right;">
             ${dep.status === 'Pending' ? `
@@ -690,13 +695,28 @@ async function approveDeposit(depositId) {
 }
 
 async function rejectDeposit(depositId) {
-  if (confirm(`Reject deposit ${depositId}?`)) {
-    await dbRejectDeposit(depositId);
-    if (typeof logAdminActivity === 'function') {
-      logAdminActivity('DEPOSIT_ACTION', depositId, `Rejected Deposit #${depositId}`);
-    }
-    await renderAdminDeposits();
+  const defaultReason = "Invalid 12-Digit UTR / Payment Not Received";
+  const reason = prompt(
+    `Enter Rejection Reason for Deposit #${depositId}:\n\n` +
+    `Common reasons:\n` +
+    `- Invalid 12-Digit UTR Number\n` +
+    `- Payment Not Received in Bank / UPI\n` +
+    `- Duplicate UTR (Already Credited)\n` +
+    `- Amount Mismatched\n\n` +
+    `Enter reason (This reason will be displayed to the user in their Transaction History):`,
+    defaultReason
+  );
+
+  if (reason === null) return; // Cancelled
+
+  const finalReason = reason.trim() || defaultReason;
+
+  await dbRejectDeposit(depositId, finalReason);
+  if (typeof logAdminActivity === 'function') {
+    logAdminActivity('DEPOSIT_ACTION', depositId, `Rejected Deposit #${depositId}. Reason: ${finalReason}`);
   }
+  await renderAdminDeposits();
+  alert(`🔴 Deposit #${depositId} Rejected!\nReason shown to user: "${finalReason}"`);
 }
 
 async function loadAdminWithdrawals() {

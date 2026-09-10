@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS public.deposits (
 );
 
 ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS proof_url TEXT DEFAULT '';
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT '';
 
 -- 5. Create 10 Card 10X Game Rounds Table
 CREATE TABLE IF NOT EXISTS public.game_rounds_10x (

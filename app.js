@@ -4603,14 +4603,24 @@ async function renderMyDepositHistory() {
     if (isApproved) statusBadge = `<span style="background: rgba(16,185,129,0.15); color: #34d399; padding: 3px 10px; border-radius: 6px; font-weight: 800; font-size: 11px;">🟢 Credited to Wallet</span>`;
     if (isRejected) statusBadge = `<span style="background: rgba(239,68,68,0.15); color: #f87171; padding: 3px 10px; border-radius: 6px; font-weight: 800; font-size: 11px;">🔴 Rejected</span>`;
 
+    const rejectReasonText = d.reject_reason || d.reason || '';
+    const rejectReasonHtml = isRejected && rejectReasonText ? `
+      <div style="margin-top: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 8px 12px; font-size: 11px; color: #fca5a5;">
+        <div style="font-weight: 800; color: #f87171; display: flex; align-items: center; gap: 5px;">
+          <i class="fa-solid fa-circle-exclamation"></i> Rejection Reason (અસ્વીકાર કારણ):
+        </div>
+        <div style="margin-top: 3px; color: #ffffff; font-weight: 600; line-height: 1.3;">${rejectReasonText}</div>
+      </div>
+    ` : '';
+
     const dateStr = d.created_at ? new Date(d.created_at).toLocaleString() : (d.date || 'Recent');
 
     return `
       <div style="background: rgba(30, 20, 55, 0.85); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 14px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 34px; height: 34px; border-radius: 50%; background: rgba(16,185,129,0.2); display: flex; align-items: center; justify-content: center; color: #34d399; font-size: 14px;">
-              <i class="fa-solid fa-arrow-down-left"></i>
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isRejected ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}; display: flex; align-items: center; justify-content: center; color: ${isRejected ? '#f87171' : '#34d399'}; font-size: 14px;">
+              <i class="fa-solid ${isRejected ? 'fa-xmark' : 'fa-arrow-down-left'}"></i>
             </div>
             <div>
               <div style="font-size: 14px; font-weight: 800; color: white;">Deposit (${d.method || 'UPI'})</div>
@@ -4618,7 +4628,7 @@ async function renderMyDepositHistory() {
             </div>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 16px; font-weight: 900; color: #34d399;">+ ₹ ${parseFloat(d.amount || 0).toFixed(2)}</div>
+            <div style="font-size: 16px; font-weight: 900; color: ${isRejected ? '#f87171' : '#34d399'};">${isRejected ? '₹' : '+ ₹'} ${parseFloat(d.amount || 0).toFixed(2)}</div>
             <div style="margin-top: 3px;">${statusBadge}</div>
           </div>
         </div>
@@ -4626,6 +4636,7 @@ async function renderMyDepositHistory() {
           <span>UTR / Ref: <strong style="color: #60a5fa; font-family: monospace; font-size: 12px;">${d.utr_number || 'N/A'}</strong></span>
           <span style="font-size: 11px; color: #64748b;">ID: ${d.id}</span>
         </div>
+        ${rejectReasonHtml}
       </div>
     `;
   }).join('');

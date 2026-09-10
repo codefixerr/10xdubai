@@ -783,7 +783,21 @@ async function dbGetUserDeposits(userId, phone) {
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient.from('deposits').select('*').order('created_at', { ascending: false });
-      if (!error && data) dbDeps = data;
+      if (!error && data) {
+        dbDeps = data.map(d => {
+          let rejectReason = d.reject_reason || '';
+          let proofUrl = d.proof_url || '';
+          if (!rejectReason && proofUrl && proofUrl.startsWith('REJECT_REASON:::')) {
+            rejectReason = proofUrl.replace('REJECT_REASON:::', '');
+            proofUrl = '';
+          }
+          return {
+            ...d,
+            proof_url: proofUrl,
+            reject_reason: rejectReason
+          };
+        });
+      }
     } catch (err) { console.warn("Deposits Fetch Warning:", err.message); }
   }
 
@@ -814,17 +828,26 @@ async function dbGetPendingDeposits() {
     try {
       const { data, error } = await supabaseClient.from('deposits').select('*').order('created_at', { ascending: false });
       if (!error && data) {
-        return data.map(d => ({
-          id: d.id,
-          user_id: d.user_id,
-          phone: d.phone,
-          amount: parseFloat(d.amount),
-          utr_number: d.utr_number,
-          method: d.method,
-          status: d.status,
-          date: d.created_at ? new Date(d.created_at).toLocaleString() : d.date,
-          proof_url: d.proof_url || ''
-        }));
+        return data.map(d => {
+          let rejectReason = d.reject_reason || '';
+          let proofUrl = d.proof_url || '';
+          if (!rejectReason && proofUrl && proofUrl.startsWith('REJECT_REASON:::')) {
+            rejectReason = proofUrl.replace('REJECT_REASON:::', '');
+            proofUrl = '';
+          }
+          return {
+            id: d.id,
+            user_id: d.user_id,
+            phone: d.phone,
+            amount: parseFloat(d.amount),
+            utr_number: d.utr_number,
+            method: d.method,
+            status: d.status,
+            date: d.created_at ? new Date(d.created_at).toLocaleString() : d.date,
+            proof_url: proofUrl,
+            reject_reason: rejectReason
+          };
+        });
       }
     } catch (err) { console.warn("Deposits Fetch Warning:", err.message); }
   }
@@ -939,12 +962,30 @@ async function dbApproveDeposit(depositId) {
   }
 }
 
-async function dbRejectDeposit(depositId) {
+async function dbRejectDeposit(depositId, reason = 'Invalid UTR / Payment Not Received') {
   if (supabaseClient) {
-    try { await supabaseClient.from('deposits').update({ status: 'Rejected' }).eq('id', depositId); } catch (err) { console.warn(err); }
+    try {
+      const { error } = await supabaseClient.from('deposits').update({
+        status: 'Rejected',
+        reject_reason: reason
+      }).eq('id', depositId);
+
+      if (error) {
+        console.warn("dbRejectDeposit fallback update:", error.message);
+        await supabaseClient.from('deposits').update({
+          status: 'Rejected',
+          proof_url: `REJECT_REASON:::${reason}`
+        }).eq('id', depositId);
+      }
+    } catch (err) {
+      console.warn("dbRejectDeposit Error:", err);
+    }
   }
   const depIdx = memoryDeposits.findIndex(d => d.id === depositId);
-  if (depIdx !== -1) memoryDeposits[depIdx].status = 'Rejected';
+  if (depIdx !== -1) {
+    memoryDeposits[depIdx].status = 'Rejected';
+    memoryDeposits[depIdx].reject_reason = reason;
+  }
 }
 
 // --- DYNAMIC GAME TIMER CONFIGURATION (PERMANENT & UNIFORM SYNCHRONIZATION) ---
