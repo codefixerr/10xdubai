@@ -990,57 +990,33 @@ function selectDepositMethodById(methodId) {
   renderFrontendDepositMethods();
 }
 
-function selectAmountPreset(presetEl, amount) {
-  const presets = document.querySelectorAll('.amount-preset-card');
-  presets.forEach(p => p.classList.remove('active'));
-  presetEl.classList.add('active');
-
+function selectAmountPreset(btnEl, amount) {
   const input = document.getElementById('deposit-amount-input');
   if (input) input.value = amount;
   currentState.depositAmount = amount;
+  currentCashierAmount = amount;
+
+  const parent = btnEl?.parentElement;
+  if (parent) {
+    parent.querySelectorAll('.amount-preset-card').forEach(b => b.classList.remove('active'));
+    if (btnEl && btnEl.classList) btnEl.classList.add('active');
+  }
 }
 
-function updateDepositBonusCalc() {
-  const input = document.getElementById('deposit-amount-input');
-  const amount = parseFloat(input?.value) || 0;
-  currentState.depositAmount = amount;
-}
+function handleDepositAmountInputChange(inputEl) {
+  const amt = parseFloat(inputEl?.value) || 0;
+  currentState.depositAmount = amt;
+  currentCashierAmount = amt;
 
-// Proceed from Deposit Screen to Cashier Checkout (Screenshot 3)
-async function proceedToCashier() {
-  if (!currentState.selectedMethodObj) {
-    showModal('⚠️ Select Method', 'Please select an active payment method card.');
-    return;
-  }
-
-  const amount = parseFloat(document.getElementById('deposit-amount-input').value);
-  if (!amount || amount < 200 || amount > 20000) {
-    showModal('⚠️ Invalid Amount', 'Deposit amount must be between ₹200 and ₹20,000 INR.');
-    return;
-  }
-
-  currentState.depositAmount = amount;
-  const selectedMethod = currentState.selectedMethodObj;
-
-  // Update Cashier Amount Payable
-  document.getElementById('cashier-payable-val').innerText = `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-
-  // Update UPI ID Display from selected method
-  document.getElementById('cashier-upi-id-display').innerText = selectedMethod.upi_id;
-
-  // Generate QR Code Image URL
-  const qrImg = document.getElementById('cashier-qr-img');
-  if (selectedMethod.qr_code_url && selectedMethod.qr_code_url.trim().length > 5) {
-    qrImg.src = selectedMethod.qr_code_url;
-  } else {
-    const upiPayString = encodeURIComponent(`upi://pay?pa=${selectedMethod.upi_id}&pn=Dubai10X&am=${amount}&cu=INR`);
-    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${upiPayString}`;
-  }
-
-  // Start 5 minute Countdown Timer (04:54)
-  startCashierTimer(300);
-
-  switchScreen('cashier');
+  const presets = document.querySelectorAll('.amount-preset-card');
+  presets.forEach(p => {
+    const valText = p.innerText.replace(/[^0-9]/g, '');
+    if (parseInt(valText) === amt) {
+      p.classList.add('active');
+    } else {
+      p.classList.remove('active');
+    }
+  });
 }
 
 function startCashierTimer(seconds) {
@@ -1071,8 +1047,10 @@ function copyUpiId() {
 }
 
 function launchPaymentApp(appName) {
-  const upiId = currentState.selectedMethodObj ? currentState.selectedMethodObj.upi_id : 'dubai10x.pay@upi';
-  const amount = currentState.depositAmount || 1000;
+  const pm = currentCashierMethod || currentState.selectedMethodObj;
+  const upiId = pm ? pm.upi_id : 'dubai10x.pay@upi';
+  const inputEl = document.getElementById('deposit-amount-input');
+  const amount = parseFloat(currentCashierAmount) || parseFloat(currentState.depositAmount) || parseFloat(inputEl?.value) || 1000;
   const lowerApp = (appName || '').toLowerCase();
 
   let targetUrl = `upi://pay?pa=${upiId}&pn=Dubai10X&am=${amount}&cu=INR`;
@@ -1093,7 +1071,7 @@ function launchPaymentApp(appName) {
     window.location.href = targetUrl;
   }, 300);
 
-  showModal('📲 Opening App', `Launching ${appName.toUpperCase()} app for ₹${amount} payment...`);
+  showModal('📲 Opening App', `Launching ${appName.toUpperCase()} app for ₹${amount.toLocaleString('en-IN')} payment...`);
 }
 
 function downloadQrCode() {
@@ -1176,19 +1154,25 @@ async function submitUtrRef() {
     return;
   }
 
-  const methodName = currentState.selectedMethodObj ? currentState.selectedMethodObj.name : 'UPI';
+  // Read actual amount directly from currentCashierAmount, currentState, or DOM input
+  const inputEl = document.getElementById('deposit-amount-input');
+  const amountToSubmit = parseFloat(currentCashierAmount) || parseFloat(currentState.depositAmount) || parseFloat(inputEl?.value) || 1000;
+  currentState.depositAmount = amountToSubmit;
+  currentCashierAmount = amountToSubmit;
+
+  const methodName = (currentCashierMethod && currentCashierMethod.name) || (currentState.selectedMethodObj ? currentState.selectedMethodObj.name : 'UPI');
 
   // Submit UTR & Proof to Supabase Database
   await dbSubmitDepositUTR(
     currentState.currentUserId || 'USR_GUEST',
     currentState.phoneNumber || '9876543210',
-    currentState.depositAmount,
+    amountToSubmit,
     utrInput,
     methodName,
     currentDepositProofUrl
   );
 
-  showModal('✅ Payment Submitted', `UTR ${utrInput} submitted for ₹${currentState.depositAmount} (${methodName})! Balance will be credited automatically upon verification.`);
+  showModal('✅ Payment Submitted', `UTR ${utrInput} submitted for ₹${amountToSubmit.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${methodName})! Balance will be credited automatically upon verification.`);
 
   if (document.getElementById('utr-input')) document.getElementById('utr-input').value = '';
   clearUtrProofFile();
@@ -3999,10 +3983,15 @@ async function proceedToCashier() {
     return;
   }
 
-  currentCashierMethod = selectedPm;
+  currentState.depositAmount = amount;
   currentCashierAmount = amount;
+  currentState.selectedMethodObj = selectedPm;
+  currentCashierMethod = selectedPm;
 
   renderCashierPaymentScreen(selectedPm, amount);
+  if (typeof startCashierTimer === 'function') {
+    startCashierTimer(300);
+  }
   switchScreen('cashier');
 }
 
@@ -4011,15 +4000,15 @@ function renderCashierPaymentScreen(pm, amount) {
   const upiDisplayEl = document.getElementById('cashier-upi-id-display');
   const qrImgEl = document.getElementById('cashier-qr-img');
 
-  if (payableEl) payableEl.innerText = `₹${amount.toLocaleString('en-IN')}.00`;
+  if (payableEl) payableEl.innerText = `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
   if (upiDisplayEl && pm) upiDisplayEl.innerText = pm.upi_id;
 
   if (qrImgEl && pm) {
     if (pm.qr_code_url) {
       qrImgEl.src = pm.qr_code_url;
     } else {
-      const upiUrl = `upi://pay?pa=${pm.upi_id}&am=${amount}&pn=AmiriWin`;
-      qrImgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+      const upiUrl = `upi://pay?pa=${pm.upi_id}&am=${amount}&pn=Dubai10X&cu=INR`;
+      qrImgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUrl)}`;
     }
   }
 }

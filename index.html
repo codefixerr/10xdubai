@@ -904,7 +904,7 @@
             <label style="font-size: 12px; color: var(--color-text-muted); font-weight: 600;">Deposit Amount (200 - 20,000 INR)</label>
             
             <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(20, 10, 40, 0.9); border: 1px solid rgba(16, 185, 129, 0.5); padding: 12px 16px; border-radius: var(--radius-md); margin-top: 6px;">
-              <input type="number" id="deposit-amount-input" class="form-input" style="font-size: 18px; font-weight: 800; color: white;" value="1000">
+              <input type="number" id="deposit-amount-input" class="form-input" style="font-size: 18px; font-weight: 800; color: white;" value="1000" oninput="handleDepositAmountInputChange(this)" onkeyup="handleDepositAmountInputChange(this)">
             </div>
 
             <!-- Amount Preset Buttons -->
