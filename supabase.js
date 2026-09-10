@@ -1158,10 +1158,10 @@ async function dbUpdateTimerSettings(config) {
 // Global Round Synchronizer
 function getGlobalSynchronizedRoundInfo() {
   if (!activeRoundTimerConfig) {
-    activeRoundTimerConfig = memoryTimerConfig || { betting_duration_sec: 240, result_duration_sec: 30 };
+    activeRoundTimerConfig = memoryTimerConfig || { betting_duration_sec: 120, result_duration_sec: 30 };
   }
 
-  let bettingSec = activeRoundTimerConfig.betting_duration_sec || 240;
+  let bettingSec = activeRoundTimerConfig.betting_duration_sec || 120;
   let resultSec = activeRoundTimerConfig.result_duration_sec || 30;
   let cycleSec = bettingSec + resultSec;
 
